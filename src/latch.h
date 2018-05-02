@@ -242,7 +242,7 @@ private:
     mutable srwlock_t           _lock;
 
     // disabled
-    NORET                        latch_t(const latch_t&);
+    latch_t(const latch_t&);
     latch_t&                     operator=(const latch_t&);
 
     uint32_t            _total_count;

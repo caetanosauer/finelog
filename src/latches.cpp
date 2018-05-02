@@ -56,7 +56,7 @@ void occ_rwlock::acquire_read()
 
 void occ_rwlock::release_write()
 {
-    w_assert9(_active_count & WRITER);
+    w_assert3(_active_count & WRITER);
     CRITICAL_SECTION(cs, _read_write_mutex);
     lintel::unsafe::atomic_fetch_sub(const_cast<unsigned*>(&_active_count), (unsigned)WRITER);
     DO_PTHREAD(pthread_cond_broadcast(&_read_cond));

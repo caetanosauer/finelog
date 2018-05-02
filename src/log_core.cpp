@@ -774,8 +774,8 @@ void log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flu
     DBGOUT3(<< " flush @ to_lsn: " << to_lsn);
 
     w_assert1(signal || !block); // signal=false can be used only when block=false
-    ASSERT_FITS_IN_POINTER(lsn_t);
     // else our reads to _durable_lsn would be unsafe
+    static_assert(sizeof(lsn_t) <= sizeof(void*), "lsn_t does not fit in pointer");
 
     // don't try to flush past end of log -- we might wait forever...
     lsn_t lsn = std::min(to_lsn, (*&_curr_lsn)+ -1);

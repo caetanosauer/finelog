@@ -194,7 +194,7 @@ inline int Heap<T, Cmp>::Parent(int i) const
 template<class T, class Cmp>
 inline void Heap<T, Cmp>::CheckHeap() const
 {
-    w_assert9(HeapProperty(0));
+    w_assert3(HeapProperty(0));
 }
 
 
@@ -255,7 +255,7 @@ Heap<T, Cmp>::~Heap()
 template<class T, class Cmp>
 T Heap<T, Cmp>::RemoveN(int i)
 {
-    w_assert9(numElements > 0);
+    w_assert3(numElements > 0);
     T temp = elements[i];
     bool smaller = cmp.gt(elements[i], elements[--numElements]);
     elements[i] = elements[numElements];
@@ -288,14 +288,14 @@ T Heap<T, Cmp>::RemoveFirst()
 template<class T, class Cmp>
 T& Heap<T, Cmp>::First()
 {
-    w_assert9(numElements > 0);
+    w_assert3(numElements > 0);
     return elements[0];
 }
 
 template<class T, class Cmp>
 T& Heap<T, Cmp>::Value(int i)
 {
-    w_assert9(i < numElements && i >= 0);
+    w_assert3(i < numElements && i >= 0);
     return elements[i];
 }
 
@@ -305,7 +305,7 @@ T& Heap<T, Cmp>::Value(int i)
 template<class T, class Cmp>
 const T& Heap<T, Cmp>::Second() const
 {
-    w_assert9(numElements > 1);
+    w_assert3(numElements > 1);
     int second = LeftChild(0);
     if (RightSibling(second) < numElements)  {
         if (cmp.gt(elements[RightSibling(second)], elements[second]))  {
@@ -370,13 +370,13 @@ void Heap<T, Cmp>::SiftDown(int rootElem)
      * Assumes: both children are legitimate heaps
      */
     if(LeftChild(rootElem) < numElements) {
-        w_assert9(HeapProperty(LeftChild(rootElem)));
+        w_assert3(HeapProperty(LeftChild(rootElem)));
     }
 
     if (numElements > 1)  {
         const T rootValue = elements[rootElem];
         while (rootElem <= Parent(numElements - 1)) {
-            w_assert9(LeftChild(rootElem) < numElements);
+            w_assert3(LeftChild(rootElem) < numElements);
 
             // find sibling with larger value
             // Tends to sift down the larger side
@@ -405,7 +405,7 @@ void Heap<T, Cmp>::SiftDown(int rootElem)
      * we might be in the middle/early stages of
      * Heapify-ing a new (unordered) heap.
      */
-    w_assert9(HeapProperty(rootElem));
+    w_assert3(HeapProperty(rootElem));
 }
 
 template<class T, class Cmp>
@@ -415,7 +415,7 @@ void Heap<T, Cmp>::SiftUp(int rootElem)
      * Assumes: legit heap on down to just above rootElem
      */
     if(rootElem > 0) {
-        w_assert9(HeapProperty(0, Parent(rootElem)));
+        w_assert3(HeapProperty(0, Parent(rootElem)));
     }
 
     if(rootElem > 0) {
@@ -435,7 +435,7 @@ void Heap<T, Cmp>::SiftUp(int rootElem)
     /*
      * Now: legit down to and including root Elem
      */
-    w_assert9(HeapProperty(0, rootElem));
+    w_assert3(HeapProperty(0, rootElem));
 }
 
 
@@ -466,7 +466,7 @@ void Heap<T, Cmp>::Heapify()
 template<class T, class Cmp>
 void Heap<T, Cmp>::GrowElements(int newSize)
 {
-    w_assert9(newSize >= numElements);
+    w_assert3(newSize >= numElements);
 
     T* newElements = new T[newSize];
     for (int i = 0; i < numElements; ++i)  {

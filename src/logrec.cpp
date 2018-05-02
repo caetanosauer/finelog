@@ -100,6 +100,10 @@ void logrec_t::init_header(kind_t type, PageID pid)
     set_size(0);
 }
 
+#define ALIGNON 0x8
+#define ALIGNON1 (ALIGNON-1)
+#define ALIGN_BYTE(sz) ((size_t)((sz + ALIGNON1) & ~ALIGNON1))
+
 void logrec_t::set_size(size_t l)
 {
     char *dat = data();

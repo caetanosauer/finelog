@@ -31,7 +31,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 /*  -- do not edit anything above this line --   </std-header>*/
 
-#include <w_debug.h>
+#include "w_debug.h"
 
 // gcc implementation in errlog.cpp since it is in #included there
 

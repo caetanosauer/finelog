@@ -61,9 +61,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define SM_SOURCE
 #define PARTITION_C
 
-#include "sm_base.h"
 #include "log_storage.h"
-#include "xct_logger.h"
 
 // files and stuff
 #include <sys/types.h>
@@ -72,6 +70,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <sys/uio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/time.h> // gettimeofday
 
 // TODO proper exception mechanism
 #define CHECK_ERRNO(n) \
@@ -181,10 +180,10 @@ rc_t partition_t::flush(
 
         if(grand_total == log_storage::BLOCK_SIZE) {
             // 1-block flush
-            INC_TSTAT(log_short_flush);
+            // INC_TSTAT(log_short_flush);
         } else {
             // 2-or-more-block flush
-            INC_TSTAT(log_long_flush);
+            // INC_TSTAT(log_long_flush);
         }
 
         // CS FINELINE TODO: this is a temporary solution for the log priming problem.
@@ -204,7 +203,7 @@ rc_t partition_t::flush(
         auto ret = ::writev(_fhdl, iov, 4);
         CHECK_ERRNO(ret);
 
-        ADD_TSTAT(log_bytes_written, grand_total);
+        // ADD_TSTAT(log_bytes_written, grand_total);
     } // end copy skip record
 
     fsync_delayed(_fhdl); // fsync
@@ -256,7 +255,7 @@ void partition_t::fsync_delayed(int fd)
     // We only cound the fsyncs called as
     // a result of flush(), not from peek
     // or start-up
-    INC_TSTAT(log_fsync_cnt);
+    // INC_TSTAT(log_fsync_cnt);
 
     auto ret = ::fsync(fd);
     CHECK_ERRNO(ret);
@@ -302,14 +301,16 @@ void partition_t::close()
         CHECK_ERRNO(ret);
         _fhdl = invalid_fhdl;
 
-        Logger::log_sys<comment_log>("closed_log_file " + to_string(_num));
+        // CS TODO
+        // Logger::log_sys<comment_log>("closed_log_file " + to_string(_num));
         DBG(<< "closed_log_file " << _num);
     }
 
     if (_delete_after_close) {
 	fs::path f = _owner->make_log_name(_num);
 	fs::remove(f);
-        Logger::log_sys<comment_log>("deleted_log_file " + to_string(_num));
+        // CS TODO
+        // Logger::log_sys<comment_log>("deleted_log_file " + to_string(_num));
         DBG(<< "deleted_log_file " << _num);
     }
 }

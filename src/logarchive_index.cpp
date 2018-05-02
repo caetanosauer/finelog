@@ -10,13 +10,10 @@
 #include "w_debug.h"
 #include "lsn.h"
 #include "latches.h"
-#include "sm_base.h"
 #include "log_core.h"
 #include "stopwatch.h"
 #include "worker_thread.h"
-#include "restart.h"
-#include "bf_tree.h"
-#include "xct_logger.h"
+// #include "xct_logger.h"
 
 class RunRecycler : public worker_thread_t
 {
@@ -79,13 +76,12 @@ size_t ArchiveIndex::getFileSize(int fd)
     return stat.st_size;
 }
 
-ArchiveIndex::ArchiveIndex(const sm_options& options)
+ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files)
+    : logStorage(logStorage)
 {
-    archdir = options.get_string_option("sm_archdir", "archive");
-
-    bool reformat = options.get_bool_option("sm_format", false);
-    directIO = options.get_bool_option("sm_arch_o_direct", false);
-    _max_open_files = options.get_int_option("sm_arch_max_open_files", 20);
+    // CS TODO: direct IO still necessary?
+    directIO = false;
+    _max_open_files = max_open_files;
 
     if (archdir.empty()) {
         W_FATAL_MSG(fcINTERNAL,
@@ -144,8 +140,8 @@ ArchiveIndex::ArchiveIndex(const sm_options& options)
     // no runs found in archive log -- start from first available log file
     if (runsFound == 0) {
         std::vector<partition_number_t> partitions;
-        if (smlevel_0::log) {
-            smlevel_0::log->get_storage()->list_partitions(partitions);
+        if (logStorage) {
+            logStorage->list_partitions(partitions);
         }
 
         if (partitions.size() > 0) {
@@ -163,12 +159,11 @@ ArchiveIndex::ArchiveIndex(const sm_options& options)
         }
     }
 
-    unsigned replFactor = options.get_int_option("sm_archiver_replication_factor", 0);
-    if (replFactor > 0) {
+    // if (replFactor > 0) {
         // CS TODO -- not implemented, see comments on deleteRuns
         // runRecycler.reset(new RunRecycler {replFactor, this});
         // runRecycler->fork();
-    }
+    // }
 }
 
 ArchiveIndex::~ArchiveIndex()
@@ -296,9 +291,10 @@ rc_t ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, Page
 
             // Notify other services that depend on archived LSN
             if (level == 1) {
-                if (smlevel_0::bf) {
-                    smlevel_0::bf->notify_archived_run(currentRun);
-                }
+                // CS TODO
+                // if (smlevel_0::bf) {
+                //     smlevel_0::bf->notify_archived_run(currentRun);
+                // }
             }
         }
     }
@@ -316,7 +312,7 @@ void ArchiveIndex::append(char* data, size_t length, unsigned level)
     // beginning of block must be a valid log record
     w_assert1(reinterpret_cast<logrec_t*>(data)->valid_header());
 
-    INC_TSTAT(la_block_writes);
+    // INC_TSTAT(la_block_writes);
     auto ret = ::pwrite(appendFd[level], data, length + logrec_t::get_skip_log().length(),
                 appendPos[level]);
     CHECK_ERRNO(ret);
@@ -362,15 +358,16 @@ RunFile* ArchiveIndex::openForScan(const RunId& runid)
                 ret = ::close(it->second.fd);
                 CHECK_ERRNO(ret);
                 it = _open_files.erase(it);
-                Logger::log_sys<comment_log>("closed_run " + to_string(runid.level) +
-                        " " + to_string(runid.begin) + " " + to_string(runid.end));
+                // CS TODO: fix XctLogger
+                // Logger::log_sys<comment_log>("closed_run " + to_string(runid.level) +
+                //         " " + to_string(runid.begin) + " " + to_string(runid.end));
                 break;
             }
 	    ++it;
 	}
     }
 
-    INC_TSTAT(la_open_count);
+    // INC_TSTAT(la_open_count);
 
     return &file;
 }

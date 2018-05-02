@@ -37,6 +37,8 @@ public:
 
 };
 
+extern sm_tls_allocator global_sm_allocator;
+
 /*
  * Macros to define class-specific new and delete operators that
  * make use of smlevel_0::allocator
@@ -45,12 +47,12 @@ public:
 #define DEFINE_SM_ALLOC(type) \
     void* type::operator new(size_t s) \
     {\
-        return smlevel_0::allocator.allocate<type>(s);\
+        return global_sm_allocator.allocate<type>(s);\
     }\
 \
     void type::operator delete(void* p, size_t s)\
     {\
-        smlevel_0::allocator.release<type>((type*) p, s);\
+        global_sm_allocator.release<type>((type*) p, s);\
     }\
 
 /**

@@ -62,15 +62,14 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define LOG_CORE_C
 
 #include "thread_wrapper.h"
-#include "sm_options.h"
-#include "sm_base.h"
+#include "basics.h"
 #include "logrec.h"
 #include "log_core.h"
 #include "log_carray.h"
 #include "log_lsn_tracker.h"
-#include "xct_logger.h"
-#include "bf_tree.h"
-#include "fixable_page_h.h"
+// CS TODO: fix XctLogger
+// #include "xct_logger.h"
+#include "w_debug.h"
 
 #include <algorithm>
 #include <sstream>
@@ -92,15 +91,12 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 class ticker_thread_t : public thread_wrapper_t
 {
 public:
-    ticker_thread_t(bool msec = false, bool print_tput = false)
-        : msec(msec), print_tput(print_tput), even_round(true)
+    ticker_thread_t(bool msec = false)
+        : msec(msec)
     {
         interval_usec = 1000; // 1ms
         if (!msec) { interval_usec *= 1000; }
         stop = false;
-
-        stats[0].fill(0);
-        stats[1].fill(0);
     }
 
     void shutdown()
@@ -110,56 +106,21 @@ public:
 
     void run()
     {
-        std::ofstream ofs;
-        std::ofstream ofs2;
-        if (print_tput) {
-            ofs.open("tput.txt", std::ofstream::out | std::ofstream::trunc);
-            // ofs2.open("evict_time.txt", std::ofstream::out | std::ofstream::trunc);
-        }
-
         while (true) {
             if (stop) { break; }
 
             std::this_thread::sleep_for(std::chrono::microseconds(interval_usec));
 
-            if (print_tput) {
-                auto& st = stats[even_round ? 0 : 1];
-                auto& prev_st = stats[even_round ? 1 : 0];
-
-                ss_m::gather_stats(st);
-                auto diff = st[enum_to_base(sm_stat_id::commit_xct_cnt)] -
-                    prev_st[enum_to_base(sm_stat_id::commit_xct_cnt)];
-                ofs << diff << std::endl;
-
-                // auto duration = st[enum_to_base(sm_stat_id::bf_evict_duration)] -
-                //     prev_st[enum_to_base(sm_stat_id::bf_evict_duration)];
-                // auto count = st[enum_to_base(sm_stat_id::bf_evict)] -
-                //     prev_st[enum_to_base(sm_stat_id::bf_evict)];
-                // auto evict_attempts = st[enum_to_base(sm_stat_id::bf_eviction_attempts)] -
-                //     prev_st[enum_to_base(sm_stat_id::bf_eviction_attempts)];
-                // auto evict_time = count > 0 ? (duration / count) : 0;
-
-                // ofs2 << evict_time << "\t" << evict_attempts << std::endl;
-            }
-
-            if (msec) { Logger::log_sys<tick_msec_log>(); }
-            else { Logger::log_sys<tick_sec_log>(); }
-
-            even_round ^= true;
+            // CS TODO: fix XctLogger
+            // if (msec) { Logger::log_sys<tick_msec_log>(); }
+            // else { Logger::log_sys<tick_sec_log>(); }
         }
-
-        if (print_tput) { ofs.close(); }
-        // if (print_tput) { ofs2.close(); }
     }
 
 private:
     int interval_usec;
     bool msec;
-    bool print_tput;
     std::atomic<bool> stop;
-
-    std::array<sm_stats_t, 2> stats;
-    bool even_round;
 };
 
 class flush_daemon_thread_t : public thread_wrapper_t
@@ -169,7 +130,6 @@ public:
     flush_daemon_thread_t(log_core* log) :
          _log(log)
     {
-        smthread_t::set_lock_timeout(timeout_t::WAIT_NOT_USED);
     }
 
     virtual void run() { _log->flush_daemon(); }
@@ -225,7 +185,7 @@ void log_core::shutdown()
  *  from the last log file.
  *
  *********************************************************************/
-log_core::log_core(const sm_options& options)
+log_core::log_core(const std::string& logdir)
     :
       _start(0),
       _end(0),
@@ -239,8 +199,8 @@ log_core::log_core(const sm_options& options)
     DO_PTHREAD(pthread_cond_init(&_wait_cond, NULL));
     DO_PTHREAD(pthread_cond_init(&_flush_cond, NULL));
 
-    uint32_t carray_slots = options.get_int_option("sm_carray_slots",
-                        ConsolidationArray::DEFAULT_ACTIVE_SLOT_COUNT);
+    // csauer: used to be an sm_option
+    uint32_t carray_slots = ConsolidationArray::DEFAULT_ACTIVE_SLOT_COUNT;
     _carray = new ConsolidationArray(carray_slots);
 
     /* Create thread o flush the log */
@@ -248,7 +208,8 @@ log_core::log_core(const sm_options& options)
 
     _buf = new char[_segsize];
 
-    _storage = new log_storage(options);
+    // CS TODO: pass options
+    _storage = new log_storage(logdir);
 
     auto curr_p = _storage->curr_partition();
     auto pnum = (curr_p ? curr_p->num() : 0) + 1;
@@ -276,18 +237,22 @@ log_core::log_core(const sm_options& options)
     _end = _start = _durable_lsn.lo();
 
     _ticker = NULL;
-    if (options.get_bool_option("sm_ticker_enable", false)) {
-        bool msec = options.get_bool_option("sm_ticker_msec", false);
-        bool print_tput = options.get_bool_option("sm_ticker_print_tput", false);
-        _ticker = new ticker_thread_t(msec, print_tput);
-    }
+    // CS TODO: replace sm_options
+    // if (options.get_bool_option("sm_ticker_enable", false)) {
+        // bool msec = options.get_bool_option("sm_ticker_msec", false);
+        _ticker = new ticker_thread_t(true);
+    // }
 
-    _group_commit_size = options.get_int_option("sm_group_commit_size", 0);
-    _group_commit_timeout = options.get_int_option("sm_group_commit_timeout", 0);
+    // CS TODO: replace sm_options
+    // _group_commit_size = options.get_int_option("sm_group_commit_size", 0);
+    // _group_commit_timeout = options.get_int_option("sm_group_commit_timeout", 0);
+    // _page_img_compression = options.get_int_option("sm_page_img_compression", 0);
+    _group_commit_size = 0;
+    _group_commit_timeout = 0;
+    _page_img_compression = 0;
 
-    _page_img_compression = options.get_int_option("sm_page_img_compression", 0);
-
-    directIO = options.get_bool_option("sm_log_o_direct", false);
+    // directIO = options.get_bool_option("sm_log_o_direct", false);
+    directIO = false;
 
     if (1) {
         cerr << "Log _start " << start_byte() << " end_byte() " << end_byte() << endl
@@ -723,8 +688,8 @@ rc_t log_core::insert_raw(const char* src, size_t length, lsn_t* rlsn)
 
     W_DO(_leave_carray(info, length));
 
-    INC_TSTAT(log_inserts);
-    ADD_TSTAT(log_bytes_generated,length);
+    // INC_TSTAT(log_inserts);
+    // ADD_TSTAT(log_bytes_generated,length);
     return RCOK;
 }
 
@@ -751,8 +716,8 @@ rc_t log_core::insert(logrec_t &rec, lsn_t* rlsn)
     }
     DBGOUT3(<< " insert @ lsn: " << rec_lsn << " type " << rec.type() << " length " << rec.length() );
 
-    INC_TSTAT(log_inserts);
-    ADD_TSTAT(log_bytes_generated,size);
+    // INC_TSTAT(log_inserts);
+    // ADD_TSTAT(log_bytes_generated,size);
     return RCOK;
 }
 
@@ -849,7 +814,7 @@ rc_t log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flu
             if (ret_flushed) *ret_flushed = true;// now flushed!
         }
     } else {
-        INC_TSTAT(log_dup_sync_cnt);
+        // INC_TSTAT(log_dup_sync_cnt);
         if (ret_flushed) *ret_flushed = true; // already flushed
     }
     return RCOK;

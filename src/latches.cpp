@@ -1,6 +1,6 @@
 #include "latches.h"
 
-#include "smthread.h"
+// #include "smthread.h"
 
 occ_rwlock::occ_rwlock()
     : _active_count(0)
@@ -110,9 +110,9 @@ void mcs_rwlock::_add_when_writer_leaves(int delta)
     int cnt = _spin_on_writer();
     lintel::unsafe::atomic_fetch_add(const_cast<unsigned*>(&_holders), delta);
     // callers do lintel::atomic_thread_fence(lintel::memory_order_acquire);
-    if(cnt  && (delta == WRITER)) {
-        INC_TSTAT(rwlock_w_wait);
-    }
+    // if(cnt  && (delta == WRITER)) {
+    //     INC_TSTAT(rwlock_w_wait);
+    // }
 }
 
 bool mcs_rwlock::attempt_read()
@@ -132,7 +132,7 @@ void mcs_rwlock::acquire_read()
      * add'l readers, we're done
      */
     if(!attempt_read()) {
-        INC_TSTAT(rwlock_r_wait);
+        // INC_TSTAT(rwlock_r_wait);
         /* There seem to be writers around, or other readers intervened in our
          * attempt_read() above.
          * Join the queue and wait for them to leave
@@ -214,7 +214,7 @@ void mcs_rwlock::acquire_write()
 
     // now wait for existing readers to clear out
     if(has_reader()) {
-        INC_TSTAT(rwlock_w_wait);
+        // INC_TSTAT(rwlock_w_wait);
         _spin_on_readers();
     }
 

@@ -1,19 +1,19 @@
 /* -*- mode:C++; c-basic-offset:4 -*-
      Shore-MT -- Multi-threaded port of the SHORE storage manager
-   
+
                        Copyright (c) 2007-2009
       Data Intensive Applications and Systems Labaratory (DIAS)
                Ecole Polytechnique Federale de Lausanne
-   
+
                          All Rights Reserved.
-   
+
    Permission to use, copy, modify and distribute this software and
    its documentation is hereby granted, provided that both the
    copyright notice and this permission notice appear in all copies of
    the software, derivative works or modified versions, and any
    portions thereof, and that both notices appear in supporting
    documentation.
-   
+
    This code is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS
@@ -52,7 +52,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 /**\cond skip */
 #include <stdio.h>
 #include "dynarray.h"
-#include "shore-config.h"
+// #include "shore-config.h"
 #include <errno.h>
 #include <sys/mman.h>
 #include <algorithm>
@@ -70,14 +70,14 @@ static size_t align_up(size_t bytes, size_t align) {
     return (bytes+mask) &~ mask;
 }
 
-#ifdef HAVE_DECL_MAP_ALIGN 
+#ifdef HAVE_DECL_MAP_ALIGN
 #define USE_MAP_ALIGN 1
 #endif
 
 int dynarray::init(size_t max_size, size_t align) {
     // round up to the nearest page boundary
     max_size = align_up(max_size, MM_PAGE_SIZE);
-    
+
     // validate inputs
     if(max_size > MM_MAX_CAPACITY)
 	return EFBIG;
@@ -222,9 +222,9 @@ int dynarray::ensure_capacity(size_t min_size) {
     if(size() < min_size) {
 	size_t next_size = std::max(min_size, 2*size());
 	err = resize(next_size);
-	
+
 	// did we reach a limit?
-	if(err == EFBIG) 
+	if(err == EFBIG)
 	    err = resize(min_size);
     }
     return err;

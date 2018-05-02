@@ -4,20 +4,20 @@
 
 /* -*- mode:C++; c-basic-offset:4 -*-
      Shore-MT -- Multi-threaded port of the SHORE storage manager
-   
+
                        Copyright (c) 2007-2009
       Data Intensive Applications and Systems Labaratory (DIAS)
                Ecole Polytechnique Federale de Lausanne
-   
+
                          All Rights Reserved.
-   
+
    Permission to use, copy, modify and distribute this software and
    its documentation is hereby granted, provided that both the
    copyright notice and this permission notice appear in all copies of
    the software, derivative works or modified versions, and any
    portions thereof, and that both notices appear in supporting
    documentation.
-   
+
    This code is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS
@@ -55,7 +55,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 /**\cond skip */
 
-#include "w.h"
 #include "mem_block.h"
 #include "AtomicCounter.hpp"
 #include <cstdlib>
@@ -123,7 +122,7 @@ size_t        block_bits::_popc(bitmap bm) {
     return rval;
 #else
 #error "NEED_POPC64: Platform not supported"
-#endif 
+#endif
 }
 
 block_bits::block_bits(size_t chip_count)
@@ -135,7 +134,7 @@ block_bits::block_bits(size_t chip_count)
 
 size_t block_bits::acquire_contiguous(size_t chip_count) {
     (void) chip_count; // make gcc happy...
-    
+
     /* find the rightmost set bit.
 
        If the map is smaller than the word size, but logically full we
@@ -193,7 +192,7 @@ void block_bits::recycle() {
 }
 
 void* block::acquire_chip(size_t chip_size, size_t chip_count, size_t /*block_size*/) {
-    size_t index = _bits.acquire_contiguous(chip_count); 
+    size_t index = _bits.acquire_contiguous(chip_count);
     return (index < chip_count)? _get(index, chip_size) : 0;
 }
 
@@ -236,7 +235,7 @@ block::block(size_t chip_size, size_t chip_count, size_t block_size)
     (void) end_of_block; // keep gcc happy
     (void) end_of_chips; // keep gcc happy
     assert(end_of_chips <= end_of_block);
-    
+
     /* We purposefully don't check alignment here because some parts
        of the impl cheat for blocks which will never be used to
        allocate anything (the fake_block being the main culprit).
@@ -278,7 +277,7 @@ block_list::block_list(block_pool* pool, size_t chip_size, size_t chip_count, si
 }
 
 
-void* block_list::_slow_acquire(size_t chip_size, 
+void* block_list::_slow_acquire(size_t chip_size,
         size_t chip_count, size_t block_size)
 {
     _change_blocks(TEMPLATE_ARGS);
@@ -298,9 +297,9 @@ block* block_list::acquire_block(size_t block_size)
     (void) block_size; // keep gcc happy
     assert((u.n & -block_size) == u.n);
     return u.b;
-    
+
 }
-void block_list::_change_blocks(size_t chip_size, 
+void block_list::_change_blocks(size_t chip_size,
         size_t chip_count, size_t block_size)
 {
     (void) chip_size; // keep gcc happy
@@ -311,14 +310,14 @@ void block_list::_change_blocks(size_t chip_size,
         _tail->_next = _tail;
         return;
     }
-    
+
     /* Check whether we're chewing through our blocks too fast for the
        current ring size
 
        If we consistently recycle blocks while they're still more than
        half full then we need a bigger ring so old blocks have more
        time to cool off between reuses.
-       
+
        To respond to end-of-spike gracefully, we're going to be pretty
        aggressive about returning blocks to the global pool: when
        recycling blocks we check for runs of blocks which do not meet
@@ -326,11 +325,11 @@ void block_list::_change_blocks(size_t chip_size,
        them (keep the last for buffering purposes).
     */
     static double const    decay_rate = 1./5; // consider (roughly) the last 5 blocks
-    // too few around suggests we should unload some extra blocks 
+    // too few around suggests we should unload some extra blocks
     size_t const max_available = chip_count - std::max((int)(.1*chip_count), 1);
     // more than 50% in-use suggests we've got too few blocks
     size_t const min_allocated = (chip_count+1)/2;
-    
+
     _avg_hit_rate = _hit_count*(1-decay_rate) + _avg_hit_rate*decay_rate;
     if(_hit_count < min_allocated && _avg_hit_rate < min_allocated) {
         // too fast.. grow the ring
@@ -348,7 +347,7 @@ void block_list::_change_blocks(size_t chip_size,
             next->recycle();
             if(next->_bits.usable_count() <= max_available)
             break;
-            
+
             // compression possible?
             if(prev) {
                 assert(prev != cur);
@@ -361,7 +360,7 @@ void block_list::_change_blocks(size_t chip_size,
 
             // avoid the endless loop
             if(next == _tail) break;
-            
+
             prev = cur;
             cur = next;
         }
@@ -376,7 +375,7 @@ void block_list::_change_blocks(size_t chip_size,
 block_list::~block_list() {
     // don't free the fake block if we went unused!
     if(_tail == &_fake_block) return;
-    
+
     // break the cycle so the loop terminates
     block* cur = _tail->_next;
     _tail->_next = 0;

@@ -59,17 +59,17 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define PARTITION_H
 #include "w_defines.h"
 
-#include "sm_base.h" // for partition_number_t (CS TODO)
 #include "logrec.h"
 #include <mutex>
 #include <atomic>
+
+// csauer: used to be in sm_base.h
+typedef uint32_t partition_number_t;
 
 class log_storage; // forward
 
 class partition_t {
 public:
-    typedef smlevel_0::partition_number_t partition_number_t;
-
     enum { XFERSIZE = 8192 };
     enum { invalid_fhdl = -1 };
 

@@ -2,7 +2,7 @@
 #define MEM_MGMT_H
 
 #include "w_defines.h"
-#include "sm_base.h"
+#include "w_rc.h"
 
 #undef MM_TEST
 

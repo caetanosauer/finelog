@@ -4,55 +4,62 @@
 #define LOGARCHIVER_C
 
 #include "logarchiver.h"
-#include "sm_options.h"
 #include "log_core.h"
-#include "xct_logger.h"
-#include "bf_tree.h" // to check for warmup
+// #include "bf_tree.h" // to check for warmup
 #include "logarchive_scanner.h" // CS TODO just for RunMerger -- remove
 
 #include <algorithm>
-#include <sm_base.h>
 
 #include "stopwatch.h"
+#include "w_debug.h"
 
 typedef fixed_lists_mem_t::slot_t slot_t;
 
 const static int DFT_BLOCK_SIZE = 8 * 1024 * 1024;
 
-LogArchiver::LogArchiver(const sm_options& options)
-    : shutdownFlag(false), flushReqLSN(lsn_t::null)
+LogArchiver::LogArchiver(const std::string& archdir, log_core* log, bool format, bool merge)
+    : log(log), shutdownFlag(false), flushReqLSN(lsn_t::null)
 {
-    constexpr size_t defaultWorkspaceSize = 1600;
-    size_t workspaceSize = 1024 * 1024 * // convert MB -> B
-        options.get_int_option("sm_archiver_workspace_size", defaultWorkspaceSize);
-    size_t archBlockSize = options.get_int_option("sm_archiver_block_size", DFT_BLOCK_SIZE);
-    bool compression = options.get_int_option("sm_page_img_compression", 0) > 0;
+    w_assert0(log);
 
-    index = std::make_shared<ArchiveIndex>(options);
+    constexpr size_t defaultWorkspaceSize = 1600;
+    // size_t workspaceSize = 1024 * 1024 * // convert MB -> B
+    //     options.get_int_option("sm_archiver_workspace_size", defaultWorkspaceSize);
+    // size_t archBlockSize = options.get_int_option("sm_archiver_block_size", DFT_BLOCK_SIZE);
+    // bool compression = options.get_int_option("sm_page_img_compression", 0) > 0;
+
+    // CS TODO: bring options
+    size_t workspaceSize = 1024 * 1024 * defaultWorkspaceSize; // convert MB -> B
+    size_t archBlockSize = DFT_BLOCK_SIZE;
+    bool compression = false;
+    size_t maxOpenFiles = 20;
+
+    index = std::make_shared<ArchiveIndex>(archdir, log->get_storage(), format, maxOpenFiles);
     nextLSN = lsn_t(index->getLastRun() + 1, 0);
     w_assert1(nextLSN.hi() > 0);
 
     constexpr bool startFromFirstLogPartition = true;
-    if (smlevel_0::log && nextLSN == lsn_t(1,0) && startFromFirstLogPartition) {
+    if (nextLSN == lsn_t(1,0) && startFromFirstLogPartition) {
         std::vector<partition_number_t> partitions;
-        smlevel_0::log->get_storage()->list_partitions(partitions);
+        log->get_storage()->list_partitions(partitions);
         if (partitions.size() > 0) {
             nextLSN = lsn_t(partitions[0], 0);
         }
     }
 
     heap = new ArchiverHeapSimple();
-    unsigned fsyncFrequency = options.get_bool_option("sm_arch_fsync_frequency", 1);
+    // unsigned fsyncFrequency = options.get_bool_option("sm_arch_fsync_frequency", 1);
+    unsigned fsyncFrequency = 1;
     blkAssemb = new BlockAssembly(index.get(), archBlockSize, 1 /*level*/, compression, fsyncFrequency);
 
     merger = nullptr;
-    if (options.get_bool_option("sm_archiver_merging", false)) {
-        merger = new MergerDaemon(options, index);
+    if (merge) {
+        merger = new MergerDaemon(index);
         merger->fork();
         merger->wakeup();
     }
 
-    currPartition = smlevel_0::log->get_storage()->get_partition(nextLSN.hi());
+    currPartition = log->get_storage()->get_partition(nextLSN.hi());
 }
 
 /*
@@ -74,7 +81,7 @@ void LogArchiver::shutdown()
     // because threads may still be accessing the log archive here.
     // this flag indicates that reader and writer threads delivering null
     // blocks is not an error, but a termination condition
-    archiveUntil(smlevel_0::log->durable_lsn().hi());
+    archiveUntil(log->durable_lsn().hi());
     DBGOUT(<< "LOG ARCHIVER SHUTDOWN STARTING");
     shutdownFlag = true;
     join();
@@ -195,10 +202,10 @@ void LogArchiver::replacement()
         }
         if (nextLSN.hi() != currPartition->num()) {
             selectionRun = currPartition->num();
-            currPartition = smlevel_0::log->get_storage()->get_partition(nextLSN.hi());
+            currPartition = log->get_storage()->get_partition(nextLSN.hi());
         }
 
-        auto lr = smlevel_0::log->fetch_direct(currPartition, nextLSN);
+        auto lr = log->fetch_direct(currPartition, nextLSN);
 
         if (lr->type() == skip_log) {
             nextLSN = lsn_t(nextLSN.hi() + 1, 0);
@@ -227,12 +234,12 @@ void LogArchiver::replacement()
 void LogArchiver::run()
 {
     while(true) {
-        endRoundLSN = smlevel_0::log->durable_lsn();
+        endRoundLSN = log->durable_lsn();
         while (nextLSN == endRoundLSN) {
             // we're going faster than log, call selection and sleep a bit (1ms)
             selection(); // called to make sure we make progress on archiving if logging is slow or stuck
             ::usleep(1000);
-            endRoundLSN = smlevel_0::log->durable_lsn();
+            endRoundLSN = log->durable_lsn();
 
             if (shutdownFlag) { break; }
 
@@ -249,7 +256,7 @@ void LogArchiver::run()
 
         if (shutdownFlag) { break; }
 
-        INC_TSTAT(la_activations);
+        // INC_TSTAT(la_activations);
         DBGOUT(<< "Log archiver activated from " << nextLSN << " to " << endRoundLSN);
 
         replacement();
@@ -330,7 +337,7 @@ bool LogArchiver::requestFlushAsync(lsn_t reqLSN)
 
 void LogArchiver::requestFlushSync(lsn_t reqLSN)
 {
-    smlevel_0::log->flush(reqLSN);
+    log->flush(reqLSN);
     DBGTHRD(<< "Requesting flush until LSN " << reqLSN);
     while (!requestFlushAsync(reqLSN)) {
         usleep(1000); // 1ms
@@ -351,8 +358,8 @@ void LogArchiver::requestFlushSync(lsn_t reqLSN)
 void LogArchiver::archiveUntil(run_number_t run)
 {
     // FINELINE
-    smlevel_0::log->flush_all();
-    lsn_t until = smlevel_0::log->durable_lsn();
+    log->flush_all();
+    lsn_t until = log->durable_lsn();
 
     // wait for log record to be consumed
     while (nextLSN < until) {
@@ -364,16 +371,19 @@ void LogArchiver::archiveUntil(run_number_t run)
     }
 }
 
-MergerDaemon::MergerDaemon(const sm_options& options,
-        std::shared_ptr<ArchiveIndex> in, std::shared_ptr<ArchiveIndex> out)
+MergerDaemon::MergerDaemon(std::shared_ptr<ArchiveIndex> in, std::shared_ptr<ArchiveIndex> out)
     :
     // CS TODO: interval should come from merge policy
     worker_thread_t(0),
      indir(in), outdir(out)
 {
-    _fanin = options.get_int_option("sm_archiver_fanin", 5);
-    _compression = options.get_int_option("sm_page_img_compression", 0) > 0;
-    _blockSize = options.get_int_option("sm_archiver_block_size", DFT_BLOCK_SIZE);
+    // CS TODO: options
+    // _fanin = options.get_int_option("sm_archiver_fanin", 5);
+    // _compression = options.get_int_option("sm_page_img_compression", 0) > 0;
+    // _blockSize = options.get_int_option("sm_archiver_block_size", DFT_BLOCK_SIZE);
+    _fanin = 5;
+    _compression = false;
+    _blockSize = DFT_BLOCK_SIZE;
     if (!outdir) { outdir = indir; }
     w_assert0(indir && outdir);
 }

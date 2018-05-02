@@ -79,10 +79,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 /* end configuration definitions                       */
 /*******************************************************/
 
-#ifndef W_WORKAROUND_H
-#include "w_workaround.h"
-#endif
-
 #define NORET        /**/
 #define CAST(t,o) ((t)(o))
 #define    W_UNUSED(x)    /**/
@@ -439,8 +435,8 @@ public:
 };
 
 #include "w_fill.h"
-#include <w_error.h>
-#include <w_rc.h>
+#include "w_error.h"
+#include "w_rc.h"
 
 template<bool B> struct CompileTimeAssertion;
 /** \brief Compile-time assertion trick.

@@ -26,7 +26,7 @@
 
 #include "w_defines.h"
 
-#include "sm_base.h"
+// #include "sm_base.h"
 #include "log_carray.h"
 
 void ConsolidationArray::wait_for_leader(CArraySlot* info) {

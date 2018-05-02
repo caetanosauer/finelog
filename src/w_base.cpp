@@ -54,7 +54,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 /*  -- do not edit anything above this line --   </std-header>*/
 
-#include <w_base.h>
+#include "w_base.h"
 #include <sstream>
 #include <cmath>
 
@@ -169,48 +169,6 @@ w_base_t::strtou8(
 )
 {
     return __strtou8(str, endptr, base, false);
-}
-
-#include <cmath>
-
-bool
-w_base_t::is_finite(const f8_t x)
-{
-    bool value = false;
-    value = finite(x);
-    return value;
-}
-
-bool
-w_base_t::is_infinite(const f8_t x)
-{
-    bool value = false;
-#if defined(MacOSX) && W_GCC_THIS_VER >= W_GCC_VER(3,0)
-    value = !finite(x) && !__isnand(x);
-#else
-    value = !finite(x) && !std::isnan(x);
-#endif
-    return value;
-}
-
-bool
-w_base_t::is_nan(const f8_t x)
-{
-    bool value = false;
-#if defined(MacOSX) && W_GCC_THIS_VER >= W_GCC_VER(3,0)
-    value = __isnand(x);
-#else
-    value = std::isnan(x);
-#endif
-    return value;
-}
-
-bool
-w_base_t::is_infinite_or_nan(const f8_t x)
-{
-    bool value = false;
-    value = !finite(x);
-    return value;
 }
 
 

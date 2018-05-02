@@ -34,7 +34,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 /*  -- do not edit anything above this line --   </std-header>*/
 
-#include <w_base.h>
+#include "w_base.h"
 
 /* sizes-in-bytes for all persistent data in the SM. */
 typedef uint32_t               smsize_t;

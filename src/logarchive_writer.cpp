@@ -1,5 +1,6 @@
 #include "logarchive_writer.h"
 
+#include "logrec.h"
 #include "ringbuffer.h"
 #include "logarchive_index.h"
 
@@ -111,7 +112,7 @@ bool BlockAssembly::add(logrec_t* lr)
 
     if (enableCompression && lr->type() == page_img_format_log) {
         // Keep track of compression efficicency
-        ADD_TSTAT(la_img_compressed_bytes, pos - currentPIDpos);
+        // ADD_TSTAT(la_img_compressed_bytes, pos - currentPIDpos);
         //  Simply discard all log records produced for the current PID do far
         pos = currentPIDpos;
         fpos = currentPIDfpos;

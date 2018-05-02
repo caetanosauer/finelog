@@ -58,6 +58,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define LOGREC_H
 
 #include "w_defines.h"
+#include "basics.h"
+#include "w_debug.h"
 
 /*  -- do not edit anything above this line --   </std-header>*/
 
@@ -66,12 +68,16 @@ class RestoreBitmap;
 class xct_t;
 
 #include "lsn.h"
-#include "tid_t.h"
-#include "generic_page.h" // logrec size == 3 * page size
 #include "allocator.h"
+
+// csauer: used to be in tid_t.h
+typedef uint64_t tid_t;
 
 // 1/4 of typical cache-line size (64B)
 constexpr size_t LogrecAlignment = 16;
+
+// csauer: used to be 3 * sizeof(generic_page)
+constexpr size_t MaxLogrecSize = 3 * 8192;
 
 struct alignas(LogrecAlignment) baseLogHeader
 {
@@ -188,8 +194,10 @@ public:
 
     void set_size(size_t l);
 
+
     enum {
-        max_sz = 3 * sizeof(generic_page),
+        // max_sz = 3 * sizeof(generic_page),
+        max_sz = MaxLogrecSize,
         hdr_sz = sizeof(baseLogHeader),
         max_data_sz = max_sz - hdr_sz
     };

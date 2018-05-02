@@ -106,13 +106,15 @@ constexpr E base_to_enum(typename std::underlying_type<E>::type e)
     return static_cast<E>(e);
 }
 
-#include <stdexcept>
+void global_assert_failed(
+    const char*        desc,
+    const char*        file,
+    uint32_t        line);
+
 // CS TODO: use STL classes and exceptions
 #define DO_PTHREAD(x) \
 {   int res = x; \
-    if(res) { \
-        throw std::runtime_error("PTHREAD error"); \
-    }  \
+    if(res) { global_assert_failed("PTHREAD error", __FILE__, __LINE__); }  \
 }
 
 // TODO proper exception mechanism
@@ -157,11 +159,6 @@ struct timeout_t {
     static constexpr int WAIT_NOT_USED = -6; // indicates last negative number used by sthreads
 };
 /*<std-footer incl-file-exclusion='BASICS_H'>  -- do not edit anything below this line -- */
-
-void global_assert_failed(
-    const char*        desc,
-    const char*        file,
-    uint32_t        line);
 
 #if W_DEBUG_LEVEL>0
 #define W_IFDEBUG1(x)    x
@@ -251,15 +248,7 @@ void global_assert_failed(
     if (!(x)) global_assert_failed(#x, __FILE__, __LINE__);    \
 } while(0)
 
-#define w_assert0_msg(x, msg)                                           \
-do {                                                                    \
-    if(!(x)) {                                                          \
-        std::stringstream s;                                                 \
-        s << #x ;                                                       \
-        s << " (detail: " << msg << ")";                                \
-        w_base_t::assert_failed(s.str().c_str(), __FILE__, __LINE__);   \
- }                                                                      \
-}while(0)                                                               \
+#define w_fatal(msg) global_assert_failed(msg, __FILE__, __LINE__);
 
 #ifndef W_DEBUG_LEVEL
 #define W_DEBUG_LEVEL 0

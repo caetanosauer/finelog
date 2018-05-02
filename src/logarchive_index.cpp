@@ -149,7 +149,7 @@ ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool 
             if (nextPartition > 1) {
                 // create empty run to fill in the missing gap
                 openNewRun(1);
-                auto lastRun = nextPartition - 1;
+                run_number_t lastRun = nextPartition - 1;
                 closeCurrentRun(lastRun, 1);
                 RunId fstats = {1, lastRun, 1};
                 auto runFile = openForScan(fstats);
@@ -504,7 +504,7 @@ void ArchiveIndex::serializeRunInfo(RunInfo& run, int fd, off_t offset)
     auto ret = ::pwrite(fd, &run.entries[0], index_size, offset);
     CHECK_ERRNO(ret);
     // Write run footer
-    RunFooter footer {offset, index_size, run.maxPID};
+    RunFooter footer {static_cast<uint64_t>(offset), index_size, run.maxPID};
     ret = ::pwrite(fd, &footer, sizeof(RunFooter), offset + index_size);
 }
 

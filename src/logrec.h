@@ -70,7 +70,6 @@ class RestoreBitmap;
 class xct_t;
 
 #include "lsn.h"
-#include "allocator.h"
 
 // csauer: used to be in tid_t.h
 typedef uint64_t tid_t;

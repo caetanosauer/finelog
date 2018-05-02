@@ -18,24 +18,6 @@
 #include <iomanip>
 typedef        ios::fmtflags        ios_fmtflags;
 
-#include <new>
-
-#include "allocator.h"
-DECLARE_TLS(block_pool<logrec_t>, logrec_pool);
-template<>
-logrec_t* sm_tls_allocator::allocate(size_t)
-{
-    return (logrec_t*) logrec_pool->acquire();
-}
-
-template<>
-void sm_tls_allocator::release(logrec_t* p, size_t)
-{
-    logrec_pool->release(p);
-}
-
-DEFINE_SM_ALLOC(logrec_t);
-
 const logrec_t& logrec_t::get_skip_log()
 {
     static logrec_t skip{kind_t::skip_log};

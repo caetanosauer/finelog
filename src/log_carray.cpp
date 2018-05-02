@@ -28,6 +28,7 @@
 
 // #include "sm_base.h"
 #include "log_carray.h"
+#include <thread>
 
 void ConsolidationArray::wait_for_leader(CArraySlot* info) {
     long old_count;
@@ -86,7 +87,8 @@ ConsolidationArray::~ConsolidationArray() {
 CArraySlot* ConsolidationArray::join_slot(int32_t size, carray_status_t &old_count)
 {
     w_assert1(size > 0);
-    carray_slotid_t idx =  (carray_slotid_t) ::pthread_self();
+    static std::hash<std::thread::id> hasher;
+    carray_slotid_t idx =  static_cast<carray_slotid_t>(hasher(std::this_thread::get_id()));
     while (true) {
         // probe phase
         CArraySlot* info = NULL;

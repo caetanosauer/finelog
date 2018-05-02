@@ -4,13 +4,6 @@
 
 #include "w_defines.h"
 
-/*  -- do not edit anything above this line --   </std-header>*/
-
-#define SM_SOURCE
-#define LOGREC_C
-
-#include "eventlog.h"
-
 #include "basics.h"
 #include <sstream>
 #include "logrec_handler.h"

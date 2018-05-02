@@ -226,7 +226,7 @@ void ReaderThread::do_work()
     }
 }
 
-LogConsumer::LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore, log_storage* storage)
+LogConsumer::LogConsumer(lsn_t startLSN, size_t blockSize, log_storage* storage)
     : nextLSN(startLSN), endLSN(lsn_t::null), currentBlock(NULL),
     blockSize(blockSize)
 {
@@ -239,7 +239,6 @@ LogConsumer::LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore, log_stor
     reader = new ReaderThread(readbuf, startLSN, storage);
     logScanner = new LogScanner(blockSize);
 
-    if(ignore) { initLogScanner(logScanner); }
     reader->fork();
 }
 
@@ -250,21 +249,6 @@ LogConsumer::~LogConsumer()
     }
     delete reader;
     delete readbuf;
-}
-
-void LogConsumer::initLogScanner(LogScanner* logScanner)
-{
-    // CS TODO use flags to filter -- there's gotta be a better way than this
-    logScanner->setIgnore(comment_log);
-    logScanner->setIgnore(chkpt_begin_log);
-    logScanner->setIgnore(xct_end_log);
-    logScanner->setIgnore(restore_begin_log);
-    logScanner->setIgnore(restore_segment_log);
-    logScanner->setIgnore(restore_end_log);
-    logScanner->setIgnore(tick_sec_log);
-    logScanner->setIgnore(tick_msec_log);
-    logScanner->setIgnore(page_read_log);
-    logScanner->setIgnore(page_write_log);
 }
 
 void LogConsumer::shutdown()
@@ -462,18 +446,6 @@ tryagain:
 
     if (lrLength) {
         *lrLength = lr->length();
-    }
-
-    // handle ignorred logrecs
-    if (ignore[lr->type()]) {
-        // if logrec was assembled from truncation, pos was already
-        // incremented, and skip is not necessary
-        if ((void*) lr == (void*) truncBuf) {
-            goto tryagain;
-        }
-        // DBGTHRD(<< "Found " << lr->type_str() << " on " << lr->lsn_ck()
-        //         << " pos " << pos << ", skipping " << lr->length());
-        toSkip += lr->length();
     }
 
     // see if we have something to skip

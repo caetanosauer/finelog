@@ -39,20 +39,16 @@ public:
     template <kind_t LR, class... Args>
     static lsn_t log_sys(const Args&... args)
     {
-        // this should use TLS allocator, so it's fast
-        // (see macro DEFINE_SM_ALLOC in allocator.h and logrec.cpp)
-        logrec_t* logrec = new logrec_t;
-
-        logrec->init_header(LR);
-        LogrecSerializer<LR>::serialize(nullptr, logrec, args...);
-        w_assert1(logrec->valid_header());
+        logrec_t logrec;
+        logrec.init_header(LR);
+        LogrecSerializer<LR>::serialize(nullptr, &logrec, args...);
+        w_assert1(logrec.valid_header());
         w_assert1(logrec_t::get_logrec_cat(LR) == logrec_t::t_system);
 
         lsn_t lsn;
-        W_COERCE(LOG_INSTANCE->insert(*logrec, &lsn));
+        W_COERCE(LOG_INSTANCE->insert(logrec, &lsn));
         // logrec->set_lsn(lsn);
 
-        delete logrec;
         return lsn;
     }
 };
@@ -134,27 +130,23 @@ public:
      * ticks, reads & writes, recovery events, debug stuff, stats, etc.)
      *
      * The difference to the other logging methods is that no xct or page
-     * is involved and the logrec buffer is obtained with the 'new' operator.
+     * is involved.
      */
     template <kind_t LR, class... Args>
     static lsn_t log_sys(const Args&... args)
     {
         if (!LOG_INSTANCE) { return lsn_t(0,0); }
 
-        // this should use TLS allocator, so it's fast
-        // (see macro DEFINE_SM_ALLOC in allocator.h and logrec.cpp)
-        logrec_t* logrec = new logrec_t;
-
-        logrec->init_header(LR);
-        LogrecSerializer<LR>::serialize(nullptr, logrec, args...);
-        w_assert1(logrec->valid_header());
+        logrec_t logrec;
+        logrec.init_header(LR);
+        LogrecSerializer<LR>::serialize(nullptr, &logrec, args...);
+        w_assert1(logrec.valid_header());
         w_assert1(logrec_t::get_logrec_cat(LR) == logrec_t::t_system);
 
         lsn_t lsn;
-        W_COERCE(LOG_INSTANCE->insert(*logrec, &lsn));
+        W_COERCE(LOG_INSTANCE->insert(logrec, &lsn));
         // logrec->set_lsn(lsn);
 
-        delete logrec;
         return lsn;
     }
 

@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "w_rc.h"
-#include "tls.h"
 #include "latch.h"
 
 /*
@@ -35,10 +34,6 @@ public:
 
     void spawn()
     {
-        // CS TODO: these are required for the old shore TLS allocator, which is still used.
-        // With C++11 and the thread_local specifier, it should be much easier to perform this
-        // type of static initialization;
-        tls_tricks::tls_manager::thread_init();
         // csauer: Thread list was used for TSTATS only
         // smthread_t::add_me_to_thread_list();
 
@@ -50,7 +45,6 @@ public:
         // csauer: TSTATS not used in finelog
         // smlevel_0::add_to_global_stats(smthread_t::TL_stats()); // before detaching them
         // smthread_t::remove_me_from_thread_list();
-        tls_tricks::tls_manager::thread_fini();
 
         // latch_t maintains some static data structures that must be deleted manually
         latch_t::on_thread_destroy();

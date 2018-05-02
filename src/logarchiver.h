@@ -2,7 +2,6 @@
 #define LOGARCHIVER_H
 
 #include "worker_thread.h"
-#include "sm_base.h"
 #include "logarchive_index.h"
 #include "logarchive_writer.h"
 #include "w_heap.h"
@@ -16,7 +15,7 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
-class sm_options;
+class log_core;
 class LogScanner;
 
 /**
@@ -91,8 +90,7 @@ private:
  */
 class MergerDaemon : public worker_thread_t {
 public:
-    MergerDaemon(const sm_options&,
-        std::shared_ptr<ArchiveIndex> in,
+    MergerDaemon(std::shared_ptr<ArchiveIndex> in,
         std::shared_ptr<ArchiveIndex> ou = nullptr);
 
     virtual ~MergerDaemon() {}
@@ -174,7 +172,7 @@ private:
  */
 class LogArchiver : public thread_wrapper_t {
 public:
-    LogArchiver(const sm_options& options);
+    LogArchiver(const std::string& archdir, log_core* log, bool format, bool merge);
     virtual ~LogArchiver();
 
     virtual void run();
@@ -196,6 +194,7 @@ public:
     const static int DFT_GRACE_PERIOD = 1000000; // 1 sec
 
 private:
+    log_core* log;
     std::shared_ptr<ArchiveIndex> index;
     ArchiverHeapSimple* heap;
     BlockAssembly* blkAssemb;

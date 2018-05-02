@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <unordered_map>
+#include <map>
 
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #include <boost/filesystem.hpp>
@@ -12,9 +13,9 @@ namespace fs = boost::filesystem;
 #include "basics.h"
 #include "latches.h"
 #include "lsn.h"
-#include "sm_options.h"
 
 class RunRecycler;
+class log_storage;
 
 struct RunId {
     run_number_t begin;
@@ -94,7 +95,7 @@ struct CmpOpenFiles {
  */
 class ArchiveIndex {
 public:
-    ArchiveIndex(const sm_options& options);
+    ArchiveIndex(const string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files);
     virtual ~ArchiveIndex();
 
     struct BlockEntry {
@@ -193,6 +194,7 @@ private:
     void serializeRunInfo(RunInfo&, int fd, off_t);
 
 private:
+    log_storage* logStorage;
     std::string archdir;
     std::vector<int> appendFd;
     std::vector<off_t> appendPos;

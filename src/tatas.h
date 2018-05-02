@@ -8,6 +8,9 @@
 #include <MUTrace/mutrace.h>
 #endif // MUTRACE_ENABLED_H
 
+// csauer: replace old SIZEOF_PTHREAD_T
+static_assert(sizeof(pthread_t) == 8, "Wrong pthread_t size");
+
 /**\brief A test-and-test-and-set spinlock.
  *
  * This lock is good for short, uncontended critical sections.
@@ -27,13 +30,7 @@ struct tatas_lock {
     enum { NOBODY=0 };
     typedef union  {
         pthread_t         handle;
-#if SIZEOF_PTHREAD_T==8
         uint64_t           bits;
-#elif SIZEOF_PTHREAD_T==0
-#error  Configuration could not determine size of pthread_t. Fix configure.ac.
-#else
-#error  Configuration determined size of pthread_t is unexpected. Fix sthread.h.
-#endif
     } holder_type_t;
     volatile holder_type_t _holder;
     /**\endcond skip */

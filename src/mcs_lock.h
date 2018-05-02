@@ -2,20 +2,20 @@
 #define MCS_LOCK_H
 /* -*- mode:C++; c-basic-offset:4 -*-
      Shore-MT -- Multi-threaded port of the SHORE storage manager
-   
+
                        Copyright (c) 2007-2009
       Data Intensive Applications and Systems Labaratory (DIAS)
                Ecole Polytechnique Federale de Lausanne
-   
+
                          All Rights Reserved.
-   
+
    Permission to use, copy, modify and distribute this software and
    its documentation is hereby granted, provided that both the
    copyright notice and this permission notice appear in all copies of
    the software, derivative works or modified versions, and any
    portions thereof, and that both notices appear in supporting
    documentation.
-   
+
    This code is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS
@@ -24,7 +24,7 @@
 */
 
 // -*- mode:c++; c-basic-offset:4 -*-
-#include <AtomicCounter.hpp>
+#include "AtomicCounter.hpp"
 #include "w_defines.h"
 
 /**
@@ -44,10 +44,10 @@ const qnode_status QNODE_DELEGATED = {{1, 1}};
 
 /**\brief An MCS queuing spinlock.
  *
- * Useful for short, contended critical sections. 
+ * Useful for short, contended critical sections.
  * If contention is expected to be rare, use a
- * tatas_lock; 
- * if critical sections are long, use pthread_mutex_t so 
+ * tatas_lock;
+ * if critical sections are long, use pthread_mutex_t so
  * the thread can block instead of spinning.
  *
  * Tradeoffs are:
@@ -137,9 +137,9 @@ struct mcs_lock {
         while(!(next=me->vthis()->_next));
         return next;
     }
-    void release(ext_qnode *me) { 
+    void release(ext_qnode *me) {
         w_assert1(is_mine(me));
-        me->_held = 0; release((qnode*) me); 
+        me->_held = 0; release((qnode*) me);
     }
     void release(ext_qnode &me) { w_assert1(is_mine(&me)); release(&me); }
     void release(qnode &me) { release(&me); }

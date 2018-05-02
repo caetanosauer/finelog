@@ -16,11 +16,10 @@
 #include <algorithm>
 
 #include "w_defines.h"
-#include "sm_base.h"
-#include "bf_tree.h"
 #include "log_storage.h"
 #include "log_core.h"
 #include "latches.h"
+#include "worker_thread.h"
 
 const string log_storage::log_prefix = "log.";
 const string log_storage::log_regex = "log\\.[1-9][0-9]*";
@@ -46,17 +45,14 @@ public:
  * found in the last block of the last partition -- this logic was moved
  * from the various prime methods of the old log_core.
  */
-log_storage::log_storage(const sm_options& options)
+log_storage::log_storage(const std::string& logdir, size_t partition_size, bool reformat, bool delete_old_partitions)
     : _curr_partition(nullptr)
 {
-    std::string logdir = options.get_string_option("sm_logdir", "log");
     if (logdir.empty()) {
         cerr << "ERROR: sm_logdir must be set to enable logging." << endl;
         W_FATAL(eCRASH);
     }
     _logpath = logdir;
-
-    bool reformat = options.get_bool_option("sm_format", false);
 
     if (!fs::exists(_logpath)) {
         if (reformat) {
@@ -67,7 +63,7 @@ log_storage::log_storage(const sm_options& options)
         }
     }
 
-    off_t psize = off_t(options.get_int_option("sm_log_partition_size", 1024));
+    off_t psize = partition_size;
     // option given in MB -> convert to B
     psize = psize * 1024 * 1024;
     // round to next multiple of the log buffer segment size
@@ -75,7 +71,7 @@ log_storage::log_storage(const sm_options& options)
     w_assert0(psize > 0);
     _partition_size = psize;
 
-    _delete_old_partitions = options.get_bool_option("sm_log_delete_old_partitions", true);
+    _delete_old_partitions = delete_old_partitions;
 
     partition_number_t  last_partition = 1;
 
@@ -181,10 +177,12 @@ void log_storage::wakeup_recycler()
 
 unsigned log_storage::delete_old_partitions(partition_number_t older_than)
 {
-    if (!smlevel_0::log || !smlevel_0::bf) { return 0; }
+    // if (!smlevel_0::log || !smlevel_0::bf) { return 0; }
 
     if (older_than == 0) {
-        older_than = smlevel_0::bf->get_archived_run();
+        // CS TODO: this must be abstracted in finelog, since there is no bf!
+        // older_than = smlevel_0::bf->get_archived_run();
+        w_assert0(false);
     }
 
     unsigned count = 0;

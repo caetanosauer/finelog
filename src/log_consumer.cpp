@@ -1,6 +1,7 @@
 #include "log_consumer.h"
 
 #include "log_core.h"
+#include "w_debug.h"
 
 // files and stuff
 #include <sys/types.h>
@@ -73,7 +74,7 @@ bool ArchiverControl::waitForActivation()
     listening = true;
     while(!activated) {
         struct timespec timeout;
-        smthread_t::timeout_to_timespec(100, timeout); // 100ms
+        timeout_to_timespec(100, timeout); // 100ms
         int code = pthread_cond_timedwait(&activateCond, &mutex, &timeout);
         if (code == ETIMEDOUT) {
             //DBGTHRD(<< "Wait timed out -- try again");
@@ -88,11 +89,12 @@ bool ArchiverControl::waitForActivation()
     return true;
 }
 
-ReaderThread::ReaderThread(AsyncRingBuffer* readbuf, lsn_t startLSN)
+ReaderThread::ReaderThread(AsyncRingBuffer* readbuf, lsn_t startLSN, log_storage* owner)
     :
       log_worker_thread_t(-1 /* interval_ms */),
-      buf(readbuf), currentFd(-1), pos(0), localEndLSN(0)
+      buf(readbuf), currentFd(-1), pos(0), localEndLSN(0), owner(owner)
 {
+    w_assert0(owner);
     // position initialized to startLSN
     pos = startLSN.lo();
     nextPartition = startLSN.hi();
@@ -108,7 +110,7 @@ rc_t ReaderThread::openPartition()
 
     // open file for read -- copied from partition_t::peek()
     int fd;
-    string fname = smlevel_0::log->make_log_name(nextPartition);
+    string fname = owner->make_log_name(nextPartition);
 
     int flags = O_RDONLY;
     fd = ::open(fname.c_str(), flags, 0744 /*mode*/);
@@ -224,7 +226,7 @@ void ReaderThread::do_work()
     }
 }
 
-LogConsumer::LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore)
+LogConsumer::LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore, log_storage* storage)
     : nextLSN(startLSN), endLSN(lsn_t::null), currentBlock(NULL),
     blockSize(blockSize)
 {
@@ -234,7 +236,7 @@ LogConsumer::LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore)
     pos = startLSN.lo() % blockSize;
 
     readbuf = new AsyncRingBuffer(blockSize, IO_BLOCK_COUNT);
-    reader = new ReaderThread(readbuf, startLSN);
+    reader = new ReaderThread(readbuf, startLSN, storage);
     logScanner = new LogScanner(blockSize);
 
     if(ignore) { initLogScanner(logScanner); }

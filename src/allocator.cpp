@@ -1,5 +1,7 @@
 #include "allocator.h"
 
+sm_tls_allocator global_sm_allocator;
+
 template<typename T>
 T* sm_tls_allocator::allocate(size_t n)
 {

@@ -98,10 +98,11 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 /* Issue warning if we don't have large file offsets with ILP32 */
 #ifndef ARCH_LP64
 
-#if _SC_V6_ILP32_OFFBIG || _XBS5_ILP32_OFFBIG
-#else
-#warning large file off_t support seems to be missing accoring to sysconf !
-#endif
+// csauer: commented out warning
+// #if _SC_V6_ILP32_OFFBIG || _XBS5_ILP32_OFFBIG
+// #else
+// #warning large file off_t support seems to be missing accoring to sysconf !
+// #endif
 
 /* ARCH_LP64 not defined */
 #endif

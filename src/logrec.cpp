@@ -11,14 +11,9 @@
 
 #include "eventlog.h"
 
-#include "sm_base.h"
-#include "vec_t.h"
-#include "alloc_cache.h"
-#include "restore.h"
+#include "basics.h"
 #include <sstream>
 #include "logrec_handler.h"
-#include "logrec_support.h"
-#include "btree_page_h.h"
 
 #include <iomanip>
 typedef        ios::fmtflags        ios_fmtflags;
@@ -265,7 +260,8 @@ void logrec_t::redo(PagePtr page)
 
 void logrec_t::redo()
 {
-    redo<btree_page_h*>(nullptr);
+    // CS TODO fix this
+    // redo<btree_page_h*>(nullptr);
 }
 
 
@@ -280,27 +276,28 @@ void logrec_t::redo()
  *********************************************************************/
 void logrec_t::undo(kind_t type, StoreID stid, const char* data)
 {
-    using PagePtr = fixable_page_h*;
-    switch (type) {
-	case btree_insert_log :
-                LogrecHandler<btree_insert_log, PagePtr>::undo(stid, data);
-		break;
-	case btree_insert_nonghost_log :
-                LogrecHandler<btree_insert_nonghost_log, PagePtr>::undo(stid, data);
-		break;
-	case btree_update_log :
-                LogrecHandler<btree_update_log, PagePtr>::undo(stid, data);
-		break;
-	case btree_overwrite_log :
-                LogrecHandler<btree_overwrite_log, PagePtr>::undo(stid, data);
-		break;
-	case btree_ghost_mark_log :
-                LogrecHandler<btree_ghost_mark_log, PagePtr>::undo(stid, data);
-		break;
-	default :
-		W_FATAL(eINTERNAL);
-		break;
-    }
+    // CS TODO fix this
+    // using PagePtr = fixable_page_h*;
+    // switch (type) {
+	// case btree_insert_log :
+    //             LogrecHandler<btree_insert_log, PagePtr>::undo(stid, data);
+		// break;
+	// case btree_insert_nonghost_log :
+    //             LogrecHandler<btree_insert_nonghost_log, PagePtr>::undo(stid, data);
+		// break;
+	// case btree_update_log :
+    //             LogrecHandler<btree_update_log, PagePtr>::undo(stid, data);
+		// break;
+	// case btree_overwrite_log :
+    //             LogrecHandler<btree_overwrite_log, PagePtr>::undo(stid, data);
+		// break;
+	// case btree_ghost_mark_log :
+    //             LogrecHandler<btree_ghost_mark_log, PagePtr>::undo(stid, data);
+		// break;
+	// default :
+		// W_FATAL(eINTERNAL);
+		// break;
+    // }
 }
 
 /*********************************************************************
@@ -338,88 +335,89 @@ operator<<(ostream& o, logrec_t& l)
     o << " pid=" << l.pid();
     o << " pversion=" << l.page_version();
 
+    // CS TODO: fix this
     switch(l.type()) {
         case comment_log :
             {
                 o << " " << (const char *)l._data;
                 break;
             }
-        case update_emlsn_log:
-            {
-                general_recordid_t slot;
-                lsn_t lsn;
-                deserialize_log_fields(&l, slot, lsn);
-                o << " slot: " << slot << " emlsn: " << lsn;
-                break;
-            }
-        case evict_page_log:
-            {
-                PageID pid;
-                uint32_t version;
-                deserialize_log_fields(&l, pid, version);
-                o << " pid: " << pid << " version: " << version;
-                break;
-            }
-        case fetch_page_log:
-            {
-                PageID pid;
-                uint32_t version;
-                StoreID store;
-                deserialize_log_fields(&l, pid, version, store);
-                o << " pid: " << pid << " version: " << version << " store: " << store;
-                break;
-            }
-        case alloc_page_log:
-        case dealloc_page_log:
-            {
-                PageID pid;
-                deserialize_log_fields(&l, pid);
-                o << " page: " << pid;
-                break;
-            }
-        case create_store_log:
-            {
-                StoreID stid;
-                PageID root_pid;
-                deserialize_log_fields(&l, stid, root_pid);
-                o << " stid: " <<  stid;
-                o << " root_pid: " << root_pid;
-                break;
-            }
-        case page_read_log:
-            {
-                PageID pid;
-                uint32_t count;
-                PageID end = pid + count - 1;
-                deserialize_log_fields(&l, pid, count);
-                o << " pids: " << pid << "-" << end;
-                break;
-            }
-        case page_write_log:
-            {
-                PageID pid;
-                lsn_t clean_lsn;
-                uint32_t count;
-                deserialize_log_fields(&l, pid, clean_lsn, count);
-                PageID end = pid + count - 1;
-                o << " pids: " << pid << "-" << end << " clean_lsn: " << clean_lsn;
-                break;
-            }
-        case restore_segment_log:
-            {
-                uint32_t segment;
-                deserialize_log_fields(&l, segment);
-                o << " segment: " << segment;
-                break;
-            }
-        case append_extent_log:
-            {
-                extent_id_t ext;
-                StoreID snum;
-                deserialize_log_fields(&l, snum, ext);
-                o << " extent: " << ext << " store: " << snum;
-                break;
-            }
+        // case update_emlsn_log:
+        //     {
+        //         general_recordid_t slot;
+        //         lsn_t lsn;
+        //         deserialize_log_fields(&l, slot, lsn);
+        //         o << " slot: " << slot << " emlsn: " << lsn;
+        //         break;
+        //     }
+        // case evict_page_log:
+        //     {
+        //         PageID pid;
+        //         uint32_t version;
+        //         deserialize_log_fields(&l, pid, version);
+        //         o << " pid: " << pid << " version: " << version;
+        //         break;
+        //     }
+        // case fetch_page_log:
+        //     {
+        //         PageID pid;
+        //         uint32_t version;
+        //         StoreID store;
+        //         deserialize_log_fields(&l, pid, version, store);
+        //         o << " pid: " << pid << " version: " << version << " store: " << store;
+        //         break;
+        //     }
+        // case alloc_page_log:
+        // case dealloc_page_log:
+        //     {
+        //         PageID pid;
+        //         deserialize_log_fields(&l, pid);
+        //         o << " page: " << pid;
+        //         break;
+        //     }
+        // case create_store_log:
+        //     {
+        //         StoreID stid;
+        //         PageID root_pid;
+        //         deserialize_log_fields(&l, stid, root_pid);
+        //         o << " stid: " <<  stid;
+        //         o << " root_pid: " << root_pid;
+        //         break;
+        //     }
+        // case page_read_log:
+        //     {
+        //         PageID pid;
+        //         uint32_t count;
+        //         PageID end = pid + count - 1;
+        //         deserialize_log_fields(&l, pid, count);
+        //         o << " pids: " << pid << "-" << end;
+        //         break;
+        //     }
+        // case page_write_log:
+        //     {
+        //         PageID pid;
+        //         lsn_t clean_lsn;
+        //         uint32_t count;
+        //         deserialize_log_fields(&l, pid, clean_lsn, count);
+        //         PageID end = pid + count - 1;
+        //         o << " pids: " << pid << "-" << end << " clean_lsn: " << clean_lsn;
+        //         break;
+        //     }
+        // case restore_segment_log:
+        //     {
+        //         uint32_t segment;
+        //         deserialize_log_fields(&l, segment);
+        //         o << " segment: " << segment;
+        //         break;
+        //     }
+        // case append_extent_log:
+        //     {
+        //         extent_id_t ext;
+        //         StoreID snum;
+        //         deserialize_log_fields(&l, snum, ext);
+        //         o << " extent: " << ext << " store: " << snum;
+        //         break;
+        //     }
 
 
         default: /* nothing */
@@ -430,5 +428,5 @@ operator<<(ostream& o, logrec_t& l)
     return o;
 }
 
-template void logrec_t::template redo<btree_page_h*>(btree_page_h*);
-template void logrec_t::template redo<fixable_page_h*>(fixable_page_h*);
+// template void logrec_t::template redo<btree_page_h*>(btree_page_h*);
+// template void logrec_t::template redo<fixable_page_h*>(fixable_page_h*);

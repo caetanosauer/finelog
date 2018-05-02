@@ -62,7 +62,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 /*  -- do not edit anything above this line --   </std-header>*/
 
-#include "smthread.h"
+// #include "smthread.h"
 #include "latches.h"
 #include <list>
 #include <thread>

@@ -57,11 +57,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 /*  -- do not edit anything above this line --   </std-header>*/
 
-#ifndef W_BASE_H
-/* NB: DO NOT make this include w.h -- not yet */
-#include <w_base.h>
-#endif /* W_BASE_H */
-
 /**\file w_debug.h
  *\ingroup MACROS
  *
@@ -92,16 +87,11 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 typedef    ios::fmtflags    w_dbg_fmtflags;
 
 
-#ifdef W_TRACE
-
 // Turns full path from __FILE__ macro into just name of the file
 // CS: This was not necessary in Shore-MT because gcc was invoked
 // not on the full path, but on the file directly
 #define _strip_filename(f) \
     (strrchr(f, '/') ? strrchr(f, '/') + 1 : f)
-
-
-#endif  /* W_TRACE*/
 
 /* ************************************************************************  */
 

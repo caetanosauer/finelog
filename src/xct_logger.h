@@ -1,12 +1,13 @@
 #ifndef XCT_LOGGER_H
 #define XCT_LOGGER_H
 
-#include "sm.h"
-#include "xct.h"
-#include "btree_page_h.h"
 #include "log_core.h"
-#include "logrec_support.h"
-#include "logrec_serialize.h"
+// CS TODO: these headers specified specific B-tree operations to be logged
+// #include "logrec_support.h"
+// #include "logrec_serialize.h"
+
+// CS TODO: fix this
+#define LOG_INSTANCE = smlevel_0::log
 
 class UndoOnlyLogger
 {
@@ -48,7 +49,7 @@ public:
         w_assert1(logrec_t::get_logrec_cat(LR) == logrec_t::t_system);
 
         lsn_t lsn;
-        W_COERCE(ss_m::log->insert(*logrec, &lsn));
+        W_COERCE(LOG_INSTANCE->insert(*logrec, &lsn));
         // logrec->set_lsn(lsn);
 
         delete logrec;
@@ -56,6 +57,8 @@ public:
     }
 };
 
+// CS TODO: xct logger not used yet, but xct_t should also be a template parameter
+template <typename xct_t>
 class XctLogger
 {
 public:
@@ -136,7 +139,7 @@ public:
     template <kind_t LR, class... Args>
     static lsn_t log_sys(const Args&... args)
     {
-        if (!ss_m::log) { return lsn_t(0,0); }
+        if (!LOG_INSTANCE) { return lsn_t(0,0); }
 
         // this should use TLS allocator, so it's fast
         // (see macro DEFINE_SM_ALLOC in allocator.h and logrec.cpp)
@@ -148,7 +151,7 @@ public:
         w_assert1(logrec_t::get_logrec_cat(LR) == logrec_t::t_system);
 
         lsn_t lsn;
-        W_COERCE(ss_m::log->insert(*logrec, &lsn));
+        W_COERCE(LOG_INSTANCE->insert(*logrec, &lsn));
         // logrec->set_lsn(lsn);
 
         delete logrec;
@@ -171,7 +174,7 @@ public:
     {
         if (type == page_img_format_log) { return false; }
 
-        auto comp = ss_m::log->get_page_img_compression();
+        auto comp = LOG_INSTANCE->get_page_img_compression();
         if (comp == 0) { return false; }
         auto vol = page->get_log_volume();
         if (vol >= comp) {
@@ -193,6 +196,6 @@ public:
 // CS TODO this is a temporary alias -- at some point the SM should have its
 // own generic Logger template argument
 // using Logger = UndoOnlyLogger;
-using Logger = XctLogger;
+// using Logger = XctLogger;
 
 #endif

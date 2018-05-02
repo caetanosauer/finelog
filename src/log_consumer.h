@@ -161,11 +161,12 @@ protected:
     int currentFd;
     off_t pos;
     lsn_t localEndLSN;
+    log_storage* owner; // CS TODO: used for make_log_name
 
 public:
     virtual void do_work();
 
-    ReaderThread(AsyncRingBuffer* readbuf, lsn_t startLSN);
+    ReaderThread(AsyncRingBuffer* readbuf, lsn_t startLSN, log_storage* owner);
     virtual ~ReaderThread() {}
 
     size_t getBlockSize() { return buf->getBlockSize(); }
@@ -190,7 +191,7 @@ public:
  */
 class LogConsumer {
 public:
-    LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore = true);
+    LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore, log_storage* storage);
     virtual ~LogConsumer();
     void shutdown();
 

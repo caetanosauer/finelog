@@ -4,9 +4,6 @@
 #include "w_defines.h"
 #include "basics.h"
 #include "w_debug.h"
-#include "vec_t.h"
-#include "smthread.h"
-#include "sm_base.h"
 
 /**
  * Simple implementation of a circular IO buffer for the archiver reader,
@@ -94,11 +91,23 @@ private:
     }
 };
 
+// timeout given in ms (csauer: copied from smthread.cpp)
+void timeout_to_timespec(int timeout, struct timespec &when)
+{
+    w_assert1(timeout != timeout_t::WAIT_IMMEDIATE);
+    w_assert1(timeout != timeout_t::WAIT_FOREVER);
+    if(timeout > 0) {
+	::clock_gettime(CLOCK_REALTIME, &when);
+	when.tv_nsec += (uint64_t) timeout * 1000000;
+	when.tv_sec += when.tv_nsec / 1000000000;
+	when.tv_nsec = when.tv_nsec % 1000000000;
+    }
+}
 
 inline bool AsyncRingBuffer::wait(pthread_cond_t* cond, bool isProducer)
 {
     struct timespec timeout;
-    smthread_t::timeout_to_timespec(100, timeout); // 100ms
+    timeout_to_timespec(100, timeout); // 100ms
     // caller must have locked mutex!
     int code = pthread_cond_timedwait(cond, &mutex, &timeout);
     if (code == ETIMEDOUT) {

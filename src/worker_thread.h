@@ -2,6 +2,7 @@
 #define WORKER_THREAD_H
 
 #include "thread_wrapper.h"
+#include "lsn.h"
 
 #include <algorithm>
 #include <chrono>

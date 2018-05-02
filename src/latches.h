@@ -200,6 +200,9 @@ typedef w_pthread_lock_t queue_based_block_lock_t; // blocking impl always ok
 // non-static initialize:
 #define QUEUE_BLOCK_EXT_QNODE_INITIALIZE(x) x._held = NULL
 
+// csauer: was defined statically in CMakeLists.txt
+#define USE_PTHREAD_MUTEX 1
+
 #ifdef USE_PTHREAD_MUTEX
 typedef w_pthread_lock_t queue_based_spin_lock_t; // spin impl preferred
 typedef w_pthread_lock_t queue_based_lock_t; // might want to use spin impl
@@ -208,7 +211,7 @@ typedef w_pthread_lock_t queue_based_lock_t; // might want to use spin impl
 // non-static initialize:
 #define QUEUE_EXT_QNODE_INITIALIZE(x) x._held = NULL;
 #else
-#include <mcs_lock.h>
+#include "mcs_lock.h"
 typedef mcs_lock queue_based_spin_lock_t; // spin preferred
 typedef mcs_lock queue_based_lock_t;
 #define QUEUE_SPIN_EXT_QNODE_INITIALIZER MCS_EXT_QNODE_INITIALIZER

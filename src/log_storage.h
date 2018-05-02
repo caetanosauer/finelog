@@ -58,15 +58,14 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define LOG_STORAGE_H
 #include "w_defines.h"
 
-#include "sm_options.h"
-#include <partition.h>
+#include "partition.h"
+#include "latches.h" // for mcs_rwlock
 #include <map>
 #include <vector>
 #include <memory>
 #include <mutex>
 #include <condition_variable>
 
-typedef    smlevel_0::partition_number_t partition_number_t;
 typedef std::map<partition_number_t, shared_ptr<partition_t>> partition_map_t;
 
 #define BOOST_FILESYSTEM_NO_DEPRECATED
@@ -82,7 +81,7 @@ class log_storage {
     friend class partition_recycler_t;
 
 public:
-    log_storage(const sm_options&);
+    log_storage(const std::string& logdir, size_t partition_size = 1024, bool reformat = false, bool delete_old_partitions = true);
     virtual ~log_storage();
 
     shared_ptr<partition_t>    get_partition_for_flush(lsn_t start_lsn,

@@ -65,6 +65,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <unistd.h>
 #include <sys/time.h> // gettimeofday
 
+using namespace std;
+
 partition_t::partition_t(log_storage *owner, partition_number_t num)
     : _num(num), _owner(owner),
       _fhdl(invalid_fhdl), _skip_logrec{kind_t::skip_log}, _delete_after_close(false)

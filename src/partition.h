@@ -108,7 +108,7 @@ private:
     void             fsync_delayed(int fd);
 
     // Serialize open and close calls
-    mutex _mutex;
+    std::mutex _mutex;
 
     logrec_t _skip_logrec;
 };

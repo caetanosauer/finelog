@@ -65,7 +65,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <mutex>
 #include <condition_variable>
 
-typedef std::map<partition_number_t, shared_ptr<partition_t>> partition_map_t;
+typedef std::map<partition_number_t, std::shared_ptr<partition_t>> partition_map_t;
 
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #include <boost/filesystem.hpp>
@@ -83,21 +83,21 @@ public:
     log_storage(const std::string& logdir, size_t partition_size = 1024, bool reformat = false, bool delete_old_partitions = true);
     virtual ~log_storage();
 
-    shared_ptr<partition_t>    get_partition_for_flush(lsn_t start_lsn,
+    std::shared_ptr<partition_t>    get_partition_for_flush(lsn_t start_lsn,
                             long start1, long end1, long start2, long end2);
-    shared_ptr<partition_t>    curr_partition() const;
+    std::shared_ptr<partition_t>    curr_partition() const;
 
-    shared_ptr<partition_t>       get_partition(partition_number_t n) const;
+    std::shared_ptr<partition_t>       get_partition(partition_number_t n) const;
 
     void list_partitions(std::vector<partition_number_t>& vec) const;
 
-    shared_ptr<partition_t> create_partition(partition_number_t pnum);
+    std::shared_ptr<partition_t> create_partition(partition_number_t pnum);
 
     off_t get_partition_size() const { return _partition_size; }
 
     size_t get_byte_distance(lsn_t a, lsn_t b) const;
 
-    string make_log_name(partition_number_t pnum) const;
+    std::string make_log_name(partition_number_t pnum) const;
     fs::path make_log_path(partition_number_t pnum) const;
 
     void wakeup_recycler();
@@ -109,7 +109,7 @@ private:
     off_t _partition_size;
 
     partition_map_t _partitions;
-    shared_ptr<partition_t> _curr_partition;
+    std::shared_ptr<partition_t> _curr_partition;
 
     bool _delete_old_partitions;
 
@@ -122,12 +122,12 @@ private:
     // Latch to protect access to partition map
     mutable mcs_rwlock _partition_map_latch;
 
-    unique_ptr<partition_recycler_t> _recycler_thread;
+    std::unique_ptr<partition_recycler_t> _recycler_thread;
 
 public:
     enum { BLOCK_SIZE = partition_t::XFERSIZE };
-    static const string log_prefix;
-    static const string log_regex;
+    static const std::string log_prefix;
+    static const std::string log_regex;
 };
 
 #endif

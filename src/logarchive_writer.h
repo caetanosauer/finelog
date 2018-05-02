@@ -121,7 +121,7 @@ private:
     bool enableCompression;
 
     PageID maxPIDInRun;
-    std::vector<pair<PageID, size_t>> buckets;
+    std::vector<std::pair<PageID, size_t>> buckets;
 
     unsigned level;
     PageID maxPID;

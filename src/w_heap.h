@@ -123,7 +123,7 @@ class Heap
         void            CheckHeap() const;
 
                         /**\brief Dump heap */
-        void            Print(ostream& out) const;
+        void            Print(std::ostream& out) const;
 
                         /**\brief Check heap property from given
                          * root to the bottom */
@@ -140,7 +140,7 @@ class Heap
         int                RightSibling(int i) const;
         int                Parent(int i) const;
 
-        void                PrintRoot(ostream& out, int rootElem, int indentLevel) const;
+        void                PrintRoot(std::ostream& out, int rootElem, int indentLevel) const;
         void                CheckHeapRoot(int rootElem) const;
                                 // check heap property for entire heap
         bool                HeapProperty(int lower, int upper) const; // check
@@ -202,7 +202,7 @@ inline int Heap<T, Cmp>::NumElements() const
 
 
 template<class T, class Cmp>
-inline void Heap<T, Cmp>::Print(ostream& out) const
+inline void Heap<T, Cmp>::Print(std::ostream& out) const
 {
     PrintRoot(out, 0, 0);
 }
@@ -517,10 +517,10 @@ bool Heap<T, Cmp>::HeapProperty(int top, int bottom) const
 // Prints out the heap in a rotated tree format.
 
 template<class T, class Cmp>
-void Heap<T, Cmp>::PrintRoot(ostream& out, int rootElem, int indentLevel) const
+void Heap<T, Cmp>::PrintRoot(std::ostream& out, int rootElem, int indentLevel) const
 {
     if (rootElem < NumElements())  {
-        cout << elements[rootElem] << endl;
+        std::cout << elements[rootElem] << std::endl;
         PrintRoot(out, LeftChild(rootElem), indentLevel + 1);
         for (int i = 0; i < indentLevel; i++)  {
             out << ' ';

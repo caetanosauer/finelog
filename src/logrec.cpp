@@ -6,8 +6,7 @@
 #include <sstream>
 #include "logrec_handler.h"
 
-#include <iomanip>
-typedef        ios::fmtflags        ios_fmtflags;
+using namespace std;
 
 const logrec_t& logrec_t::get_skip_log()
 {
@@ -220,7 +219,7 @@ logrec_t::corrupt()
 ostream&
 operator<<(ostream& o, logrec_t& l)
 {
-    ios_fmtflags        f = o.flags();
+    auto f = o.flags();
     o.setf(ios::left, ios::left);
 
     o << l.type_str();

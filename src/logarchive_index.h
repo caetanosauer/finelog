@@ -95,7 +95,7 @@ struct CmpOpenFiles {
  */
 class ArchiveIndex {
 public:
-    ArchiveIndex(const string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files);
+    ArchiveIndex(const std::string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files);
     virtual ~ArchiveIndex();
 
     struct BlockEntry {
@@ -138,10 +138,10 @@ public:
     void listFileStats(std::list<RunId>& list, int level = -1);
     void deleteRuns(unsigned replicationFactor = 0);
 
-    static bool parseRunFileName(string fname, RunId& fstats);
+    static bool parseRunFileName(std::string fname, RunId& fstats);
     static size_t getFileSize(int fd);
 
-    void newBlock(const vector<pair<PageID, size_t> >& buckets, unsigned level);
+    void newBlock(const std::vector<std::pair<PageID, size_t> >& buckets, unsigned level);
 
     void finishRun(run_number_t first, run_number_t last, PageID maxPID,
             int fd, off_t offset, unsigned level);
@@ -159,8 +159,8 @@ public:
         return runs[level].size();
     }
 
-    void dumpIndex(ostream& out);
-    void dumpIndex(ostream& out, const RunId& runid);
+    void dumpIndex(std::ostream& out);
+    void dumpIndex(std::ostream& out, const RunId& runid);
 
     template <class OutputIter>
     void listRunsNonOverlapping(OutputIter out)
@@ -226,10 +226,10 @@ private:
     fs::path make_current_run_path(unsigned level) const;
 
 public:
-    const static string RUN_PREFIX;
-    const static string CURR_RUN_PREFIX;
-    const static string run_regex;
-    const static string current_regex;
+    const static std::string RUN_PREFIX;
+    const static std::string CURR_RUN_PREFIX;
+    const static std::string run_regex;
+    const static std::string current_regex;
 };
 
 template <class Input>

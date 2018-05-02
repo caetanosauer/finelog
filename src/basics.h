@@ -35,12 +35,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 #include "w_base.h"
 
-// CS TODO: delete this
-using namespace std;
-
-/* sizes-in-bytes for all persistent data in the SM. */
-typedef uint32_t               smsize_t;
-
 /* For types of store, volumes, see stid_t.h and vid_t.h */
 
 typedef uint32_t    PageID;

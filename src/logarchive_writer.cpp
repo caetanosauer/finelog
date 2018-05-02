@@ -4,13 +4,15 @@
 #include "ringbuffer.h"
 #include "logarchive_index.h"
 
+using namespace std;
+
 // CS TODO: use option
 const static int IO_BLOCK_COUNT = 8;
 
 BlockAssembly::BlockAssembly(ArchiveIndex* index, size_t blockSize, unsigned level, bool compression,
         unsigned fsyncFrequency)
     : dest(nullptr), lastRun(0), currentPID(0), blockSize(blockSize), level(level), enableCompression(compression),
-    maxPID(std::numeric_limits<PageID>::min())
+    maxPID(numeric_limits<PageID>::min())
 {
     archIndex = index;
     writebuf = new AsyncRingBuffer(blockSize, IO_BLOCK_COUNT);
@@ -59,7 +61,7 @@ bool BlockAssembly::start(run_number_t run)
     if (!dest) {
         DBGTHRD(<< "Block request failed!");
         if (!writebuf->isFinished()) {
-            throw std::runtime_error("ERROR: write ring buffer refused produce request");
+            throw runtime_error("ERROR: write ring buffer refused produce request");
         }
         return false;
     }
@@ -69,13 +71,13 @@ bool BlockAssembly::start(run_number_t run)
         archIndex->startNewRun(level);
         fpos = 0;
         lastRun = run;
-        currentPID = std::numeric_limits<PageID>::max();
+        currentPID = numeric_limits<PageID>::max();
     }
 
     pos = sizeof(BlockHeader);
     currentPIDpos = pos;
     currentPIDfpos = fpos;
-    maxPID = std::numeric_limits<PageID>::min();
+    maxPID = numeric_limits<PageID>::min();
     buckets.clear();
 
     return true;

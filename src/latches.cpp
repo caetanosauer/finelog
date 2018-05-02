@@ -8,8 +8,9 @@
 #include <list>
 #include <algorithm>
 
-const char* const  latch_t::latch_mode_str[4] = { "NL", "Q", "SH", "EX" };
+using namespace std;
 
+const char* const  latch_t::latch_mode_str[4] = { "NL", "Q", "SH", "EX" };
 
 latch_t::latch_t() :
     _total_count(0)

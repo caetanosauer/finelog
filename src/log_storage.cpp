@@ -20,6 +20,8 @@
 #include "latches.h"
 #include "worker_thread.h"
 
+using namespace std;
+
 const string log_storage::log_prefix = "log.";
 const string log_storage::log_regex = "log\\.[1-9][0-9]*";
 

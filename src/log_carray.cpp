@@ -24,9 +24,6 @@
    RESULTING FROM THE USE OF THIS SOFTWARE.
 */
 
-#include "w_defines.h"
-
-// #include "sm_base.h"
 #include "log_carray.h"
 #include <thread>
 

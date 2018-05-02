@@ -55,7 +55,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 #include <iostream>
 
-#include "w_defines.h"
 #include "w_base.h"
 
 /* FRJ: Major changes to lsn_t

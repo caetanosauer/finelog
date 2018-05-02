@@ -59,7 +59,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 #include <array>
 
-#include "w_defines.h"
 #include "basics.h"
 #include "w_debug.h"
 

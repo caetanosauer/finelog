@@ -13,6 +13,8 @@
 #define MM_VERIFY(v)
 #endif
 
+using namespace std;
+
 typedef fixed_lists_mem_t::slot_t slot_t;
 
 /**

@@ -1,17 +1,12 @@
-#include "w_defines.h"
-
-#define SM_SOURCE
-#define LOGARCHIVER_C
-
 #include "logarchiver.h"
+
 #include "log_core.h"
 // #include "bf_tree.h" // to check for warmup
 #include "logarchive_scanner.h" // CS TODO just for RunMerger -- remove
-
-#include <algorithm>
-
 #include "stopwatch.h"
 #include "w_debug.h"
+
+#include <algorithm>
 
 typedef fixed_lists_mem_t::slot_t slot_t;
 

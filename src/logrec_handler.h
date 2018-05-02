@@ -1,7 +1,6 @@
 #ifndef LOGREC_HANDLER_H
 #define LOGREC_HANDLER_H
 
-#include "w_defines.h"
 #include "encoding.h"
 #include "logrec.h"
 

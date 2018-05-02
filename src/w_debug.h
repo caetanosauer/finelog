@@ -53,10 +53,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #ifndef W_DEBUG_H
 #define W_DEBUG_H
 
-#include "w_defines.h"
-
-/*  -- do not edit anything above this line --   </std-header>*/
-
 /**\file w_debug.h
  *\ingroup MACROS
  *
@@ -77,15 +73,9 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <sstream>
 #include <iostream>
 
-#undef USE_REGEX
-
-#ifdef USE_REGEX
-#include "regex_posix.h"
-#endif /* USE_REGEX */
-
 /* XXX missing type in vc++, hack around it here too, don't pollute
    global namespace too badly. */
-typedef    ios::fmtflags    w_dbg_fmtflags;
+typedef    std::ios::fmtflags    w_dbg_fmtflags;
 
 
 // Turns full path from __FILE__ macro into just name of the file
@@ -118,14 +108,6 @@ class w_debug {
         enum { _all = 0x1, _none = 0x2 };
         unsigned int        mask;
         int            _trace_level;
-
-#ifdef USE_REGEX
-        static regex_t        re_posix_re;
-        static bool        re_ready;
-        static char*        re_error_str;
-        static char*        re_comp_debug(const char* pattern);
-        static int        re_exec_debug(const char* string);
-#endif /* USE_REGEX */
 
         int            all(void) { return (mask & _all) ? 1 : 0; }
         int            none(void) { return (mask & _none) ? 1 : 0; }

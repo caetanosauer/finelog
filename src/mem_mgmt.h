@@ -1,8 +1,8 @@
 #ifndef MEM_MGMT_H
 #define MEM_MGMT_H
 
-#include "w_defines.h"
 #include <cstring>
+#include <cstdint>
 
 #undef MM_TEST
 

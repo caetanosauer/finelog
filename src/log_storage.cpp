@@ -15,7 +15,6 @@
 #include <chrono>
 #include <algorithm>
 
-#include "w_defines.h"
 #include "log_storage.h"
 #include "log_core.h"
 #include "latches.h"

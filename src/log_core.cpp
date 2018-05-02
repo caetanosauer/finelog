@@ -54,13 +54,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#include "w_defines.h"
-
-/*  -- do not edit anything above this line --   </std-header>*/
-
-#define SM_SOURCE
-#define LOG_CORE_C
-
 #include "thread_wrapper.h"
 #include "basics.h"
 #include "logrec.h"

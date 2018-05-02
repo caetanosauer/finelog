@@ -1,7 +1,6 @@
 #ifndef RINGBUFFER_H
 #define RINGBUFFER_H
 
-#include "w_defines.h"
 #include "basics.h"
 
 #include <mutex>

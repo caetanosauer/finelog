@@ -50,13 +50,11 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#include "w_defines.h"
-
-/*  -- do not edit anything above this line --   </std-header>*/
-
 #include "w_base.h"
 #include <sstream>
 #include <iostream>
+
+using namespace std;
 
 void global_assert_failed(
     const char*        desc,

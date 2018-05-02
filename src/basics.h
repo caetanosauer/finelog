@@ -30,12 +30,13 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #ifndef BASICS_H
 #define BASICS_H
 
-#include "w_defines.h"
 #include <type_traits>
-
-/*  -- do not edit anything above this line --   </std-header>*/
+#include <cstdint>
 
 #include "w_base.h"
+
+// CS TODO: delete this
+using namespace std;
 
 /* sizes-in-bytes for all persistent data in the SM. */
 typedef uint32_t               smsize_t;
@@ -80,6 +81,16 @@ struct GeneralRecordIds {
         return slot + 1;
     }
 };
+
+/**
+* \brief CPU Cache line size in bytes.
+* \details
+* Most modern CPU has 64 bytes cacheline.
+* Some less popular CPU like Spark uses 128 bytes.
+* This value is used for padding to keep lock objects in different cachelines.
+* TODO: CMake script to automatically detect this and cmakedefine for it (JIRA ZERO-179).
+*/
+const size_t CACHELINE_SIZE = 64;
 
 /* XXX duplicates w_base types. */
 const int32_t    max_int4 = 0x7fffffff;         /*  (1 << 31) - 1;  */

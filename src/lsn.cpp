@@ -50,12 +50,10 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#include "w_defines.h"
-
-/*  -- do not edit anything above this line --   </std-header>*/
-
 #include "lsn.h"
 #include <sstream>
+
+using namespace std;
 
 const lsn_t lsn_t::null(0, 0);
 const lsn_t lsn_t::max(lsn_t::file_hwm, lsn_t::mask());
@@ -70,5 +68,5 @@ std::string lsn_t::str()
 // to use in gdb
 void print_lsn(lsn_t lsn)
 {
-    std::cout << lsn.file() << "." << lsn.rba() << std::endl;
+    cout << lsn.file() << "." << lsn.rba() << endl;
 }

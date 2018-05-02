@@ -27,18 +27,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#include "w_defines.h"
-
-/*  -- do not edit anything above this line --   </std-header>*/
-
 #include "w_debug.h"
-
-// gcc implementation in errlog.cpp since it is in #included there
-
-/* compile this stuff even if -UDEBUG because
- * other layers might be using -DDEBUG
- * and we want to be able to link, in any case
- */
 
 #include <iostream>
 #include <cstring>

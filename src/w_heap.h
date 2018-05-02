@@ -30,10 +30,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #ifndef W_HEAP_H
 #define W_HEAP_H
 
-#include "w_defines.h"
-
-/*  -- do not edit anything above this line --   </std-header>*/
-
 #include "w_base.h"
 
 

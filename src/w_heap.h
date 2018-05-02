@@ -30,9 +30,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #ifndef W_HEAP_H
 #define W_HEAP_H
 
-#include "w_base.h"
-
-
 /**\brief General-purpose heap.
  *
  * This class implements a general purpose heap.
@@ -69,7 +66,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
  * RemoveFirst always removes the largest element.
  *
  ****************************************************************************/
-
 
 template <class T, class Cmp>
 class Heap

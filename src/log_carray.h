@@ -84,7 +84,6 @@
 
 #include <stdint.h>
 #include <boost/static_assert.hpp>
-#include "w_base.h"
 #include "latches.h"
 #include "lsn.h"
 

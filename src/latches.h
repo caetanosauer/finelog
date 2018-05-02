@@ -1,7 +1,6 @@
 #ifndef LATCHES_H
 #define LATCHES_H
 
-#include "w_base.h"
 #include "basics.h"
 #include "AtomicCounter.hpp"
 #include <list>

@@ -117,7 +117,9 @@ inline bool AsyncRingBuffer::wait(pthread_cond_t* cond, bool isProducer)
             return false;
         }
     }
-    DO_PTHREAD_TIMED(code);
+    if (code != ETIMEDOUT) {
+        DO_PTHREAD(code);
+    }
     return true;
 }
 

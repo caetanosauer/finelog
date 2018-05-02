@@ -75,15 +75,12 @@ logrec_t::get_type_str(kind_t type)
 	case kind_t::benchmark_start_log : return "benchmark_start";
 	case kind_t::page_write_log : return "page_write";
 	case kind_t::page_read_log : return "page_read";
-    default:
-      return "UNKNOWN";
     }
 
     /*
      *  Not reached.
      */
-    W_FATAL(eINTERNAL);
-    return 0;
+    w_assert0(false);
 }
 
 logrec_t::logrec_t(kind_t kind)
@@ -154,9 +151,6 @@ void logrec_t::redo(PagePtr page)
         case kind_t::btree_unset_foster_log : LogrecHandler<kind_t::btree_unset_foster_log, PagePtr>::redo(this, page); break;
         case kind_t::btree_bulk_delete_log : LogrecHandler<kind_t::btree_bulk_delete_log, PagePtr>::redo(this, page); break;
         case kind_t::btree_compress_page_log : LogrecHandler<kind_t::btree_compress_page_log, PagePtr>::redo(this, page); break;
-	default :
-		W_FATAL(eINTERNAL);
-		break;
     }
 
     page->set_version(page_version());

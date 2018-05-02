@@ -1,6 +1,6 @@
 #include "latches.h"
 
-// #include "smthread.h"
+#include "basics.h"
 
 occ_rwlock::occ_rwlock()
     : _active_count(0)

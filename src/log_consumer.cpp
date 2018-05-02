@@ -12,12 +12,6 @@
 // CS TODO: use option
 const static int IO_BLOCK_COUNT = 8; // total buffer = 8MB
 
-// TODO proper exception mechanism
-#define CHECK_ERRNO(n) \
-    if (n == -1) { \
-        W_FATAL_MSG(fcOS, << "Kernel errno code: " << errno); \
-    }
-
 ArchiverControl::ArchiverControl(std::atomic<bool>* shutdownFlag)
     : endLSN(lsn_t::null), activated(false), listening(false), shutdownFlag(shutdownFlag)
 {
@@ -83,7 +77,9 @@ bool ArchiverControl::waitForActivation()
                 return false;
             }
         }
-        DO_PTHREAD_TIMED(code);
+        if (code != ETIMEDOUT) {
+            DO_PTHREAD(code);
+        }
     }
     listening = false;
     return true;
@@ -100,7 +96,7 @@ ReaderThread::ReaderThread(AsyncRingBuffer* readbuf, lsn_t startLSN, log_storage
     nextPartition = startLSN.hi();
 }
 
-rc_t ReaderThread::openPartition()
+bool ReaderThread::openPartition()
 {
     if (currentFd != -1) {
         auto ret = ::close(currentFd);
@@ -119,7 +115,7 @@ rc_t ReaderThread::openPartition()
     struct stat stat;
     auto ret = ::fstat(fd, &stat);
     CHECK_ERRNO(ret);
-    if (stat.st_size == 0) { return RC(eEOF); }
+    if (stat.st_size == 0) { return false; }
     off_t partSize = stat.st_size;
 
     /*
@@ -138,7 +134,7 @@ rc_t ReaderThread::openPartition()
 
     currentFd = fd;
     nextPartition++;
-    return RCOK;
+    return true;
 }
 
 void ReaderThread::do_work()
@@ -186,14 +182,14 @@ void ReaderThread::do_work()
         // get buffer space to read into
         char* dest = buf->producerRequest();
         if (!dest) {
-            W_FATAL_MSG(fcINTERNAL,
-                    << "Error requesting block on reader thread");
+            throw std::runtime_error("Error requesting block on reader thread");
             break;
         }
 
 
         if (currentFd == -1) {
-            W_COERCE(openPartition());
+            bool opened = openPartition();
+            w_assert0(opened);
         }
 
         // Read only the portion which was ignored on the last round
@@ -204,15 +200,14 @@ void ReaderThread::do_work()
         if (bytesRead == 0) {
             // Reached EOF -- open new file and try again
             DBGTHRD(<< "Reader reached EOF (bytesRead = 0)");
-            W_COERCE(openPartition());
+            bool opened = openPartition();
+            w_assert0(opened);
             pos = 0;
             blockPos = 0;
             bytesRead = ::pread(currentFd, dest, blockSize, pos);
             CHECK_ERRNO(bytesRead);
             if (bytesRead == 0) {
-                W_FATAL_MSG(fcINTERNAL,
-                        << "Error reading from partition "
-                        << nextPartition - 1);
+                throw std::runtime_error("Error reading from partition");
             }
         }
 
@@ -285,7 +280,7 @@ bool LogConsumer::nextBlock()
             // then the next partition does not exist. This would be a bug,
             // because endLSN should always be an existing LSN, or one
             // immediately after an existing LSN but in the same partition.
-            W_FATAL_MSG(fcINTERNAL, << "Consume request failed!");
+            throw std::runtime_error("Consume request failed!");
         }
         return false;
     }

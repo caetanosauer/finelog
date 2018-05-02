@@ -31,6 +31,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define BASICS_H
 
 #include "w_defines.h"
+#include <type_traits>
 
 /*  -- do not edit anything above this line --   </std-header>*/
 
@@ -102,24 +103,22 @@ constexpr E base_to_enum(typename std::underlying_type<E>::type e)
     return static_cast<E>(e);
 }
 
-/*
- * Safe Integer conversion (ie. casting) function
- */
-inline int u4i(uint32_t x) {w_assert1(x<=(unsigned)max_int4); return int(x); }
-
-// inline unsigned int  uToi(int32_t x) {assert(x>=0); return (uint) x; }
-
-
-
-inline bool is_aligned(smsize_t sz)
-{
-    return w_base_t::is_aligned(sz);
+#include <stdexcept>
+// CS TODO: use STL classes and exceptions
+#define DO_PTHREAD(x) \
+{   int res = x; \
+    if(res) { \
+        throw std::runtime_error("PTHREAD error"); \
+    }  \
 }
 
-inline bool is_aligned(const void* p)
-{
-    return w_base_t::is_aligned(p);
-}
+// TODO proper exception mechanism
+#define CHECK_ERRNO(n) \
+    if (n == -1) { \
+        std::stringstream ss; \
+        ss << "Kernel errno code: " << errno; \
+        throw std::runtime_error(ss.str()); \
+    }
 
 /*<std-footer incl-file-exclusion='BASICS_H'>  -- do not edit anything below this line -- */
 

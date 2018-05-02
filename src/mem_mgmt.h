@@ -2,7 +2,7 @@
 #define MEM_MGMT_H
 
 #include "w_defines.h"
-#include "w_rc.h"
+#include <cstring>
 
 #undef MM_TEST
 
@@ -145,9 +145,9 @@ public:
             size_t incr = 32,
             size_t max = 16384);
     ~fixed_lists_mem_t();
-    rc_t allocate(size_t length, slot_t& slot);
-    rc_t free(slot_t slot);
-    rc_t defrag();
+    void allocate(size_t length, slot_t& slot);
+    void free(slot_t slot);
+    void defrag();
 };
 
 

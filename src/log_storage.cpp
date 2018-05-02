@@ -49,8 +49,7 @@ log_storage::log_storage(const std::string& logdir, size_t partition_size, bool 
     : _curr_partition(nullptr)
 {
     if (logdir.empty()) {
-        cerr << "ERROR: sm_logdir must be set to enable logging." << endl;
-        W_FATAL(eCRASH);
+        throw std::runtime_error("ERROR: sm_logdir must be set to enable logging");
     }
     _logpath = logdir;
 
@@ -58,8 +57,7 @@ log_storage::log_storage(const std::string& logdir, size_t partition_size, bool 
         if (reformat) {
             fs::create_directories(_logpath);
         } else {
-            cerr << "Error: could not open the log directory " << logdir <<endl;
-            W_COERCE(RC(eOS));
+            throw std::runtime_error("Error: could not open the log directory");
         }
     }
 
@@ -96,8 +94,9 @@ log_storage::log_storage(const std::string& logdir, size_t partition_size, bool 
             }
         }
         else {
-            cerr << "log_storage: cannot parse filename " << fname << endl;
-            W_FATAL(fcINTERNAL);
+            std::stringstream ss;
+            ss << "log_storage: cannot parse filename " << fname;
+            throw std::runtime_error(ss.str());
         }
 
     }
@@ -146,7 +145,9 @@ shared_ptr<partition_t> log_storage::create_partition(partition_number_t pnum)
 {
     auto p = get_partition(pnum);
     if (p) {
-        W_FATAL_MSG(eINTERNAL, << "Partition " << pnum << " already exists");
+        std::stringstream ss;
+        ss << "Partition " << pnum << " already exists";
+        throw std::runtime_error(ss.str());
     }
 
     p = make_shared<partition_t>(this, pnum);

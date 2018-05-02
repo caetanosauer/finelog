@@ -75,6 +75,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <cassert>
 #include <pthread.h>
 #include <sstream>
+#include <iostream>
 
 #undef USE_REGEX
 

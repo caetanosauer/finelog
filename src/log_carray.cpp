@@ -66,7 +66,7 @@ ConsolidationArray::ConsolidationArray(int active_slot_count)
     _active_slots = new CArraySlotPtr[_active_slot_count];
     for (int i = 0; i < ALL_SLOT_COUNT; ++i) {
         _all_slots[i].count = SLOT_UNUSED;
-        _all_slots[i].error = w_error_ok;
+        // _all_slots[i].error = w_error_ok;
     }
     // Mark initially active slots
     for (int i = 0; i < _active_slot_count; ++i) {

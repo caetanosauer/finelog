@@ -44,12 +44,6 @@ struct RunFooter {
     PageID maxPID;
 };
 
-// TODO proper exception mechanism
-#define CHECK_ERRNO(n) \
-    if (n == -1) { \
-        W_FATAL_MSG(fcOS, << "Kernel errno code: " << errno); \
-    }
-
 bool ArchiveIndex::parseRunFileName(string fname, RunId& fstats)
 {
     boost::regex run_rx(run_regex, boost::regex::perl);
@@ -84,16 +78,14 @@ ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool 
     _max_open_files = max_open_files;
 
     if (archdir.empty()) {
-        W_FATAL_MSG(fcINTERNAL,
-                << "Option for archive directory must be specified");
+        throw std::runtime_error("Option for archive directory must be specified");
     }
 
     if (!fs::exists(archdir)) {
         if (reformat) {
             fs::create_directories(archdir);
         } else {
-            cerr << "Error: could not open the log directory " << archdir <<endl;
-            W_COERCE(RC(eOS));
+            throw std::runtime_error("Error: could not open the log archive directory");
         }
     }
 
@@ -128,8 +120,10 @@ ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool 
             fs::remove(fpath);
         }
         else {
-            cerr << "ArchiveIndex cannot parse filename " << fname << endl;
-            W_FATAL(fcINTERNAL);
+            // CS TODO: this logic is repeated in log_storage
+            std::stringstream ss;
+            ss << "ArchiveIndex: cannot parse filename " << fname;
+            throw std::runtime_error(ss.str());
         }
     }
 
@@ -214,7 +208,7 @@ void ArchiveIndex::listFileStats(list<RunId>& list, int level)
  * We assume the rename operation is atomic, even in case of OS crashes.
  *
  */
-rc_t ArchiveIndex::openNewRun(unsigned level)
+void ArchiveIndex::openNewRun(unsigned level)
 {
     int flags = O_WRONLY | O_CREAT;
     std::string fname = make_current_run_path(level).string();
@@ -231,8 +225,6 @@ rc_t ArchiveIndex::openNewRun(unsigned level)
         appendPos.resize(level+1, 0);
         appendPos[level] = 0;
     }
-
-    return RCOK;
 }
 
 fs::path ArchiveIndex::make_run_path(run_number_t begin, run_number_t end, unsigned level)
@@ -247,7 +239,7 @@ fs::path ArchiveIndex::make_current_run_path(unsigned level) const
     return archpath / fs::path(CURR_RUN_PREFIX + std::to_string(level));
 }
 
-rc_t ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, PageID maxPID)
+void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, PageID maxPID)
 {
     run_number_t lastRun = 0;
     if (level == 1) {
@@ -300,8 +292,6 @@ rc_t ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, Page
     }
 
     openNewRun(level);
-
-    return RCOK;
 }
 
 void ArchiveIndex::append(char* data, size_t length, unsigned level)
@@ -470,7 +460,7 @@ void ArchiveIndex::newBlock(const vector<pair<PageID, size_t> >&
     }
 }
 
-rc_t ArchiveIndex::finishRun(run_number_t begin, run_number_t end,
+void ArchiveIndex::finishRun(run_number_t begin, run_number_t end,
         PageID maxPID, int fd, off_t offset, unsigned level)
 {
     int lf;
@@ -496,8 +486,6 @@ rc_t ArchiveIndex::finishRun(run_number_t begin, run_number_t end,
     }
 
     if (level > 1 && runRecycler) { runRecycler->wakeup(); }
-
-    return RCOK;
 }
 
 void ArchiveIndex::serializeRunInfo(RunInfo& run, int fd, off_t offset)
@@ -657,8 +645,9 @@ size_t ArchiveIndex::findEntry(RunInfo* run,
         }
         // Queried pid is greater than last in run.  This should not happen
         // because probes must not consider this run if that's the case
-        W_FATAL_MSG(fcINTERNAL, << "Invalid probe on archiver index! "
-                << " PID = " << pid << " run = " << run->begin);
+        std::stringstream ss;
+        ss << "Invalid probe on archiver index! " << " PID = " << pid << " run = " << run->begin;
+        throw std::runtime_error(ss.str());
     }
 
     // negative value indicates first invocation

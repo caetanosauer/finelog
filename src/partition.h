@@ -85,7 +85,7 @@ public:
 
     size_t read_block(void* buf, size_t count, off_t offset);
 
-    rc_t flush(lsn_t lsn, const char* const buf, long start1, long end1,
+    void flush(lsn_t lsn, const char* const buf, long start1, long end1,
             long start2, long end2);
 
     bool is_open() const

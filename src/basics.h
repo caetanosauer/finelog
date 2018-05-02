@@ -90,7 +90,17 @@ const uint16_t    min_uint2 = 0;
 const uint32_t    max_uint4 = 0xffffffff;
 const uint32_t    min_uint4 = 0;
 
+template<typename E>
+constexpr auto enum_to_base(E e) -> typename std::underlying_type<E>::type
+{
+    return static_cast<typename std::underlying_type<E>::type>(e);
+}
 
+template<typename E>
+constexpr E base_to_enum(typename std::underlying_type<E>::type e)
+{
+    return static_cast<E>(e);
+}
 
 /*
  * Safe Integer conversion (ie. casting) function

@@ -3,8 +3,9 @@
 
 #include "w_defines.h"
 #include "basics.h"
-#include "w_debug.h"
-#include "latches.h"
+
+#include <mutex>
+#include <atomic>
 
 /**
  * Simple implementation of a circular IO buffer for the archiver reader,
@@ -45,27 +46,18 @@ public:
     size_t getBlockSize() { return blockSize; }
     size_t getBlockCount() { return blockCount; }
     void set_finished(bool f = true) { finished = f; }
-    bool* get_finished() { return &finished; } // not thread-safe
-    bool isFinished(); // thread-safe
-
+    bool isFinished() { return finished.load(); }
 
     AsyncRingBuffer(size_t bsize, size_t bcount)
         : begin(0), end(0), bparity(true), eparity(true),
-        finished(false), blockSize(bsize), blockCount(bcount)
+        blockSize(bsize), blockCount(bcount)
     {
         buf = new char[blockCount * blockSize];
-        // CS TODO replace with <mutex>
-        DO_PTHREAD(pthread_mutex_init(&mutex, NULL));
-        DO_PTHREAD(pthread_cond_init(&notEmpty, NULL));
-        DO_PTHREAD(pthread_cond_init(&notFull, NULL));
     }
 
     ~AsyncRingBuffer()
     {
         delete buf;
-        DO_PTHREAD(pthread_mutex_destroy(&mutex));
-        DO_PTHREAD(pthread_cond_destroy(&notEmpty));
-        DO_PTHREAD(pthread_cond_destroy(&notFull));
     }
 
 private:
@@ -74,14 +66,13 @@ private:
     int end;
     bool bparity;
     bool eparity;
-    bool finished;
+    std::atomic<bool> finished{false};
 
     const size_t blockSize;
     const size_t blockCount;
 
-    pthread_mutex_t mutex;
-    pthread_cond_t notEmpty;
-    pthread_cond_t notFull;
+    std::mutex mtx;
+    std::condition_variable cond;
 
     bool wait(pthread_cond_t*, bool isProducer);
 
@@ -106,96 +97,51 @@ void timeout_to_timespec(int timeout, struct timespec &when)
     }
 }
 
-inline bool AsyncRingBuffer::wait(pthread_cond_t* cond, bool isProducer)
-{
-    struct timespec timeout;
-    timeout_to_timespec(100, timeout); // 100ms
-    // caller must have locked mutex!
-    int code = pthread_cond_timedwait(cond, &mutex, &timeout);
-    if (code == ETIMEDOUT) {
-        //DBGTHRD(<< "Wait timed out -- try again");
-        if (finished && (isEmpty() || isProducer)) {
-            DBGTHRD(<< "Wait aborted: finished flag is set");
-            return false;
-        }
-    }
-    if (code != ETIMEDOUT) {
-        DO_PTHREAD(code);
-    }
-    return true;
-}
-
 inline char* AsyncRingBuffer::producerRequest()
 {
-    // CS TODO: use unique_lock
-    CRITICAL_SECTION(cs, mutex);
-    while (isFull()) {
-        DBGTHRD(<< "Waiting for condition notFull ...");
-        constexpr bool isProducer = true;
-        if (!wait(&notFull, isProducer)) {
-            DBGTHRD(<< "Produce request failed!");
-            return NULL;
-        }
+    std::unique_lock<std::mutex> lck{mtx};
+    if (isFull()) {
+        cond.wait(lck, [this] { return finished || !isFull(); });
     }
-    DBGTHRD(<< "Producer request: block " << end);
+    if (finished) {
+        return NULL;
+    }
     return buf + (end * blockSize);
 }
 
 inline void AsyncRingBuffer::producerRelease()
 {
-    CRITICAL_SECTION(cs, mutex);
+    std::unique_lock<std::mutex> lck{mtx};
     bool wasEmpty = isEmpty();
     increment(end, eparity);
-    DBGTHRD(<< "Producer release, new end is " << end);
 
     if (wasEmpty) {
-        DBGTHRD(<< "Signal buffer not empty");
-        DO_PTHREAD(pthread_cond_signal(&notEmpty));
+        cond.notify_one();
     }
 }
 
 inline char* AsyncRingBuffer::consumerRequest()
 {
-    CRITICAL_SECTION(cs, mutex);
-    while (isEmpty()) {
-        DBGTHRD(<< "Waiting for condition notEmpty ...");
-        constexpr bool isProducer = false;
-        if (!wait(&notEmpty, isProducer)) {
-            DBGTHRD(<< "Consume request failed!");
-            return NULL;
-        }
+    std::unique_lock<std::mutex> lck{mtx};
+    if (isEmpty()) {
+        cond.wait(lck, [this] { return finished || !isEmpty(); });
     }
-    DBGTHRD(<< "Consumer request: block " << begin);
+    // Consumer doesn't finish until the queue is empty
+    if (finished && !isEmpty()) {
+        return NULL;
+    }
     return buf + (begin * blockSize);
 }
 
 inline void AsyncRingBuffer::consumerRelease()
 {
-    CRITICAL_SECTION(cs, mutex);
+    std::unique_lock<std::mutex> lck{mtx};
     bool wasFull = isFull();
     increment(begin, bparity);
-    DBGTHRD(<< "Consumer release, new begin is " << begin);
 
     if (wasFull) {
-        DBGTHRD(<< "Signal buffer not full");
-        DO_PTHREAD(pthread_cond_signal(&notFull));
+        cond.notify_one();
     }
-}
-
-inline bool AsyncRingBuffer::isFinished()
-{
-    /*
-     * Acquiring the mutex here is done to ensure consistency
-     * of modifications to the finished flag. It creates a memory
-     * fence to ensure the correct order of operations in the case
-     * where one thread reading the flag after another one has set it.
-     *
-     * Caution! This does not mean that there are no blocks left for
-     * consumption---just that someone set the finished flag. The former
-     * case must be checked by calling producerRequest()
-     */
-    CRITICAL_SECTION(cs, mutex);
-    return finished;
 }
 
 #endif

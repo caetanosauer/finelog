@@ -93,7 +93,7 @@ struct alignas(LogrecAlignment) baseLogHeader
 
 static_assert(sizeof(baseLogHeader) == 16, "Wrong logrec header size");
 
-enum kind_t {
+enum class kind_t : uint8_t {
     comment_log = 0,
     // compensate_log = 1,
     skip_log = 2,
@@ -243,10 +243,15 @@ public:
     bool has_page_img()
     {
         return
-             (type() == page_img_format_log)
-            || (type() == stnode_format_log)
-            || (type() == alloc_format_log)
+             (type() == kind_t::page_img_format_log)
+            || (type() == kind_t::stnode_format_log)
+            || (type() == kind_t::alloc_format_log)
             ;
+    }
+
+    bool is_page_img_format()
+    {
+        return type() == kind_t::page_img_format_log;
     }
 
     friend ostream& operator<<(ostream&, logrec_t&);
@@ -362,7 +367,7 @@ public:
     kind_t get_type(size_t i)
     {
         if (i < _count) { return _entries[i].type; }
-        return t_max_logrec;
+        return kind_t::t_max_logrec;
     }
 };
 
@@ -431,7 +436,7 @@ public:
 inline bool baseLogHeader::is_valid() const
 {
     return (_len >= sizeof(baseLogHeader)
-            && _type < t_max_logrec
+            && _type < enum_to_base(kind_t::t_max_logrec)
             && _len <= sizeof(logrec_t));
 }
 
@@ -484,7 +489,7 @@ logrec_t::is_redo() const
 inline bool
 logrec_t::is_skip() const
 {
-    return type() == skip_log;
+    return type() == kind_t::skip_log;
 }
 
 inline bool
@@ -505,47 +510,47 @@ logrec_t::is_page_update() const
 constexpr u_char logrec_t::get_logrec_cat(kind_t type)
 {
     switch (type) {
-	case comment_log : return t_system;
-	case tick_sec_log : return t_system;
-	case tick_msec_log : return t_system;
-	case benchmark_start_log : return t_system;
-	case page_write_log : return t_system;
-	case page_read_log : return t_system;
-	case skip_log : return t_system;
-	case chkpt_begin_log : return t_system;
-	case loganalysis_begin_log : return t_system;
-	case loganalysis_end_log : return t_system;
-	case redo_done_log : return t_system;
-	case undo_done_log : return t_system;
-        case warmup_done_log: return t_system;
-	case restore_begin_log : return t_system;
-	case restore_segment_log : return t_system;
-	case restore_end_log : return t_system;
-	case xct_latency_dump_log : return t_system;
-	case add_backup_log : return t_system;
-	case evict_page_log : return t_system;
-	case fetch_page_log : return t_system;
-	case xct_end_log : return t_system;
+        case kind_t::comment_log : return t_system;
+	case kind_t::tick_sec_log : return t_system;
+	case kind_t::tick_msec_log : return t_system;
+	case kind_t::benchmark_start_log : return t_system;
+	case kind_t::page_write_log : return t_system;
+	case kind_t::page_read_log : return t_system;
+	case kind_t::skip_log : return t_system;
+	case kind_t::chkpt_begin_log : return t_system;
+	case kind_t::loganalysis_begin_log : return t_system;
+	case kind_t::loganalysis_end_log : return t_system;
+	case kind_t::redo_done_log : return t_system;
+	case kind_t::undo_done_log : return t_system;
+        case kind_t::warmup_done_log: return t_system;
+	case kind_t::restore_begin_log : return t_system;
+	case kind_t::restore_segment_log : return t_system;
+	case kind_t::restore_end_log : return t_system;
+	case kind_t::xct_latency_dump_log : return t_system;
+	case kind_t::add_backup_log : return t_system;
+	case kind_t::evict_page_log : return t_system;
+	case kind_t::fetch_page_log : return t_system;
+	case kind_t::xct_end_log : return t_system;
 
-	case alloc_page_log : return t_redo;
-	case stnode_format_log : return t_redo;
-	case alloc_format_log : return t_redo;
-	case dealloc_page_log : return t_redo;
-	case create_store_log : return t_redo;
-	case append_extent_log : return t_redo;
-	case page_img_format_log : return t_redo;
-	case update_emlsn_log : return t_redo;
-	case btree_insert_log : return t_redo|t_undo;
-	case btree_insert_nonghost_log : return t_redo|t_undo;
-	case btree_update_log : return t_redo|t_undo;
-	case btree_overwrite_log : return t_redo|t_undo;
-	case btree_ghost_mark_log : return t_redo|t_undo;
-	case btree_ghost_reclaim_log : return t_redo;
-	case btree_ghost_reserve_log : return t_redo;
-	case btree_foster_adopt_log : return t_redo;
-	case btree_unset_foster_log : return t_redo;
-	case btree_bulk_delete_log : return t_redo;
-	case btree_compress_page_log : return t_redo;
+        case kind_t::alloc_page_log : return t_redo;
+	case kind_t::stnode_format_log : return t_redo;
+	case kind_t::alloc_format_log : return t_redo;
+	case kind_t::dealloc_page_log : return t_redo;
+	case kind_t::create_store_log : return t_redo;
+	case kind_t::append_extent_log : return t_redo;
+	case kind_t::page_img_format_log : return t_redo;
+	case kind_t::update_emlsn_log : return t_redo;
+	case kind_t::btree_insert_log : return t_redo|t_undo;
+	case kind_t::btree_insert_nonghost_log : return t_redo|t_undo;
+	case kind_t::btree_update_log : return t_redo|t_undo;
+	case kind_t::btree_overwrite_log : return t_redo|t_undo;
+	case kind_t::btree_ghost_mark_log : return t_redo|t_undo;
+	case kind_t::btree_ghost_reclaim_log : return t_redo;
+	case kind_t::btree_ghost_reserve_log : return t_redo;
+	case kind_t::btree_foster_adopt_log : return t_redo;
+	case kind_t::btree_unset_foster_log : return t_redo;
+	case kind_t::btree_bulk_delete_log : return t_redo;
+	case kind_t::btree_compress_page_log : return t_redo;
 
         default: return t_bad_cat;
     }

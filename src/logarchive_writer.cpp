@@ -93,7 +93,7 @@ bool BlockAssembly::add(logrec_t* lr)
     if (lr->length() > available) {
         // If this is a page_img logrec, we might still have space for it because
         // the preceding log records of the same PID will be dropped
-        if (enableCompression && lr->type() == page_img_format_log) {
+        if (enableCompression && lr->is_page_img_format()) {
             size_t imgAvailable = blockSize - (currentPIDpos + logrec_t::get_skip_log().length());
             bool hasSpaceForPageImg = lr->pid() == currentPID && lr->length() < imgAvailable;
             if (!hasSpaceForPageImg) { return false; }
@@ -110,7 +110,7 @@ bool BlockAssembly::add(logrec_t* lr)
         if (currentPID > maxPID) { maxPID = currentPID; }
     }
 
-    if (enableCompression && lr->type() == page_img_format_log) {
+    if (enableCompression && lr->is_page_img_format()) {
         // Keep track of compression efficicency
         // ADD_TSTAT(la_img_compressed_bytes, pos - currentPIDpos);
         //  Simply discard all log records produced for the current PID do far

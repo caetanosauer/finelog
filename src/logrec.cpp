@@ -38,7 +38,7 @@ DEFINE_SM_ALLOC(logrec_t);
 
 const logrec_t& logrec_t::get_skip_log()
 {
-    static logrec_t skip{skip_log};
+    static logrec_t skip{kind_t::skip_log};
     return skip;
 }
 
@@ -53,86 +53,46 @@ const char*
 logrec_t::get_type_str(kind_t type)
 {
     switch (type)  {
-	case comment_log :
-		return "comment";
-	case skip_log :
-		return "skip";
-	case chkpt_begin_log :
-		return "chkpt_begin";
-	case add_backup_log :
-		return "add_backup";
-	case evict_page_log :
-		return "evict_page";
-	case fetch_page_log :
-		return "fetch_page";
-	case xct_end_log :
-		return "xct_end";
-	case xct_latency_dump_log :
-		return "xct_latency_dump";
-	case alloc_page_log :
-		return "alloc_page";
-	case dealloc_page_log :
-		return "dealloc_page";
-	case create_store_log :
-		return "create_store";
-	case alloc_format_log :
-		return "alloc_format";
-	case stnode_format_log :
-		return "stnode_format";
-	case append_extent_log :
-		return "append_extent";
-	case loganalysis_begin_log :
-		return "loganalysis_begin";
-	case loganalysis_end_log :
-		return "loganalysis_end";
-	case redo_done_log :
-		return "redo_done";
-	case undo_done_log :
-		return "undo_done";
-	case restore_begin_log :
-		return "restore_begin";
-	case restore_segment_log :
-		return "restore_segment";
-	case restore_end_log :
-		return "restore_end";
-	case warmup_done_log :
-		return "warmup_done";
-	case page_img_format_log :
-		return "page_img_format";
-	case update_emlsn_log :
-		return "update_emlsn";
-	case btree_insert_log :
-		return "btree_insert";
-	case btree_insert_nonghost_log :
-		return "btree_insert_nonghost";
-	case btree_update_log :
-		return "btree_update";
-	case btree_overwrite_log :
-		return "btree_overwrite";
-	case btree_ghost_mark_log :
-		return "btree_ghost_mark";
-	case btree_ghost_reclaim_log :
-		return "btree_ghost_reclaim";
-	case btree_ghost_reserve_log :
-		return "btree_ghost_reserve";
-	case btree_foster_adopt_log :
-		return "btree_foster_adopt";
-	case btree_unset_foster_log :
-		return "btree_unset_foster";
-	case btree_bulk_delete_log :
-		return "btree_bulk_delete";
-	case btree_compress_page_log :
-		return "btree_compress_page";
-	case tick_sec_log :
-		return "tick_sec";
-	case tick_msec_log :
-		return "tick_msec";
-	case benchmark_start_log :
-		return "benchmark_start";
-	case page_write_log :
-		return "page_write";
-	case page_read_log :
-		return "page_read";
+        case kind_t::comment_log : return "comment";
+	case kind_t::skip_log : return "skip";
+	case kind_t::chkpt_begin_log : return "chkpt_begin";
+	case kind_t::add_backup_log : return "add_backup";
+	case kind_t::evict_page_log : return "evict_page";
+	case kind_t::fetch_page_log : return "fetch_page";
+	case kind_t::xct_end_log : return "xct_end";
+	case kind_t::xct_latency_dump_log : return "xct_latency_dump";
+	case kind_t::alloc_page_log : return "alloc_page";
+	case kind_t::dealloc_page_log : return "dealloc_page";
+	case kind_t::create_store_log : return "create_store";
+	case kind_t::alloc_format_log : return "alloc_format";
+	case kind_t::stnode_format_log : return "stnode_format";
+	case kind_t::append_extent_log : return "append_extent";
+	case kind_t::loganalysis_begin_log : return "loganalysis_begin";
+	case kind_t::loganalysis_end_log : return "loganalysis_end";
+	case kind_t::redo_done_log : return "redo_done";
+	case kind_t::undo_done_log : return "undo_done";
+	case kind_t::restore_begin_log : return "restore_begin";
+	case kind_t::restore_segment_log : return "restore_segment";
+	case kind_t::restore_end_log : return "restore_end";
+	case kind_t::warmup_done_log : return "warmup_done";
+	case kind_t::page_img_format_log : return "page_img_format";
+	case kind_t::update_emlsn_log : return "update_emlsn";
+	case kind_t::btree_insert_log : return "btree_insert";
+	case kind_t::btree_insert_nonghost_log : return "btree_insert_nonghost";
+	case kind_t::btree_update_log : return "btree_update";
+	case kind_t::btree_overwrite_log : return "btree_overwrite";
+	case kind_t::btree_ghost_mark_log : return "btree_ghost_mark";
+	case kind_t::btree_ghost_reclaim_log : return "btree_ghost_reclaim";
+	case kind_t::btree_ghost_reserve_log : return "btree_ghost_reserve";
+	case kind_t::btree_foster_adopt_log : return "btree_foster_adopt";
+	case kind_t::btree_unset_foster_log : return "btree_unset_foster";
+	case kind_t::btree_bulk_delete_log : return "btree_bulk_delete";
+	case kind_t::btree_compress_page_log : return "btree_compress_page";
+	case kind_t::tick_sec_log : return "tick_sec";
+	case kind_t::tick_msec_log : return "tick_msec";
+	case kind_t::benchmark_start_log : return "benchmark_start";
+	case kind_t::page_write_log : return "page_write";
+	case kind_t::page_read_log : return "page_read";
     default:
       return "UNKNOWN";
     }
@@ -146,7 +106,7 @@ logrec_t::get_type_str(kind_t type)
 
 logrec_t::logrec_t(kind_t kind)
 {
-    header._type = kind;
+    header._type = enum_to_base(kind);
     header._pid = 0;
     header._page_version = 0;
     set_size(0);
@@ -154,7 +114,7 @@ logrec_t::logrec_t(kind_t kind)
 
 void logrec_t::init_header(kind_t type, PageID pid)
 {
-    header._type = type;
+    header._type = enum_to_base(type);
     header._pid = pid;
     header._page_version = 0;
     // CS TODO: for most logrecs, set_size is called twice
@@ -192,64 +152,26 @@ void logrec_t::redo(PagePtr page)
 {
     DBG( << "Redo  log rec: " << *this << " size: " << header._len);
 
-    switch (header._type)  {
-	case alloc_page_log :
-                LogrecHandler<alloc_page_log, PagePtr>::redo(this, page);
-		break;
-	case dealloc_page_log :
-                LogrecHandler<dealloc_page_log, PagePtr>::redo(this, page);
-		break;
-	case alloc_format_log :
-                LogrecHandler<alloc_format_log, PagePtr>::redo(this, page);
-		break;
-	case stnode_format_log :
-                LogrecHandler<stnode_format_log, PagePtr>::redo(this, page);
-		break;
-	case create_store_log :
-                LogrecHandler<create_store_log, PagePtr>::redo(this, page);
-		break;
-	case append_extent_log :
-                LogrecHandler<append_extent_log, PagePtr>::redo(this, page);
-		break;
-	case page_img_format_log :
-                LogrecHandler<page_img_format_log, PagePtr>::redo(this, page);
-		break;
-	case update_emlsn_log :
-                LogrecHandler<update_emlsn_log, PagePtr>::redo(this, page);
-		break;
-	case btree_insert_log :
-                LogrecHandler<btree_insert_log, PagePtr>::redo(this, page);
-		break;
-	case btree_insert_nonghost_log :
-                LogrecHandler<btree_insert_nonghost_log, PagePtr>::redo(this, page);
-		break;
-	case btree_update_log :
-                LogrecHandler<btree_update_log, PagePtr>::redo(this, page);
-		break;
-	case btree_overwrite_log :
-                LogrecHandler<btree_overwrite_log, PagePtr>::redo(this, page);
-		break;
-	case btree_ghost_mark_log :
-                LogrecHandler<btree_ghost_mark_log, PagePtr>::redo(this, page);
-		break;
-	case btree_ghost_reclaim_log :
-                LogrecHandler<btree_ghost_reclaim_log, PagePtr>::redo(this, page);
-		break;
-	case btree_ghost_reserve_log :
-                LogrecHandler<btree_ghost_reserve_log, PagePtr>::redo(this, page);
-		break;
-	case btree_foster_adopt_log :
-                LogrecHandler<btree_foster_adopt_log, PagePtr>::redo(this, page);
-		break;
-	case btree_unset_foster_log :
-                LogrecHandler<btree_unset_foster_log, PagePtr>::redo(this, page);
-		break;
-	case btree_bulk_delete_log :
-                LogrecHandler<btree_bulk_delete_log, PagePtr>::redo(this, page);
-		break;
-	case btree_compress_page_log :
-                LogrecHandler<btree_compress_page_log, PagePtr>::redo(this, page);
-		break;
+    switch (base_to_enum<kind_t>(header._type))  {
+        case kind_t::alloc_page_log : LogrecHandler<kind_t::alloc_page_log, PagePtr>::redo(this, page); break;
+        case kind_t::dealloc_page_log : LogrecHandler<kind_t::dealloc_page_log, PagePtr>::redo(this, page); break;
+        case kind_t::alloc_format_log : LogrecHandler<kind_t::alloc_format_log, PagePtr>::redo(this, page); break;
+        case kind_t::stnode_format_log : LogrecHandler<kind_t::stnode_format_log, PagePtr>::redo(this, page); break;
+        case kind_t::create_store_log : LogrecHandler<kind_t::create_store_log, PagePtr>::redo(this, page); break;
+        case kind_t::append_extent_log : LogrecHandler<kind_t::append_extent_log, PagePtr>::redo(this, page); break;
+        case kind_t::page_img_format_log : LogrecHandler<kind_t::page_img_format_log, PagePtr>::redo(this, page); break;
+        case kind_t::update_emlsn_log : LogrecHandler<kind_t::update_emlsn_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_insert_log : LogrecHandler<kind_t::btree_insert_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_insert_nonghost_log : LogrecHandler<kind_t::btree_insert_nonghost_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_update_log : LogrecHandler<kind_t::btree_update_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_overwrite_log : LogrecHandler<kind_t::btree_overwrite_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_ghost_mark_log : LogrecHandler<kind_t::btree_ghost_mark_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_ghost_reclaim_log : LogrecHandler<kind_t::btree_ghost_reclaim_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_ghost_reserve_log : LogrecHandler<kind_t::btree_ghost_reserve_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_foster_adopt_log : LogrecHandler<kind_t::btree_foster_adopt_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_unset_foster_log : LogrecHandler<kind_t::btree_unset_foster_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_bulk_delete_log : LogrecHandler<kind_t::btree_bulk_delete_log, PagePtr>::redo(this, page); break;
+        case kind_t::btree_compress_page_log : LogrecHandler<kind_t::btree_compress_page_log, PagePtr>::redo(this, page); break;
 	default :
 		W_FATAL(eINTERNAL);
 		break;
@@ -337,11 +259,11 @@ operator<<(ostream& o, logrec_t& l)
 
     // CS TODO: fix this
     switch(l.type()) {
-        case comment_log :
-            {
-                o << " " << (const char *)l._data;
-                break;
-            }
+        // case comment_log :
+        //     {
+        //         o << " " << (const char *)l._data;
+        //         break;
+        //     }
         // case update_emlsn_log:
         //     {
         //         general_recordid_t slot;

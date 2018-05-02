@@ -54,28 +54,11 @@ public:
         return blockSize;
     }
 
-    void setIgnore(kind_t type) {
-        ignore.set(type);
-    }
-
-    void ignoreAll() {
-        ignore.set();
-    }
-
-    void unsetIgnore(kind_t type) {
-        ignore.reset(type);
-    }
-
-    bool isIgnored(kind_t type) {
-        return ignore[type];
-    }
-
 private:
     size_t truncCopied;
     size_t toSkip;
     const size_t blockSize;
     char* truncBuf;
-    bitset<t_max_logrec> ignore;
 };
 
 /** \brief Object to control execution of background threads.
@@ -191,15 +174,13 @@ public:
  */
 class LogConsumer {
 public:
-    LogConsumer(lsn_t startLSN, size_t blockSize, bool ignore, log_storage* storage);
+    LogConsumer(lsn_t startLSN, size_t blockSize, log_storage* storage);
     virtual ~LogConsumer();
     void shutdown();
 
     void open(lsn_t endLSN, bool readWholeBlocks = false);
     bool next(logrec_t*& lr, lsn_t* lsn = nullptr);
     lsn_t getNextLSN() { return nextLSN; }
-
-    static void initLogScanner(LogScanner* logScanner);
 
 private:
     AsyncRingBuffer* readbuf;

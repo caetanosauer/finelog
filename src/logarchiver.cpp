@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+using namespace std;
+
 typedef fixed_lists_mem_t::slot_t slot_t;
 
 const static int DFT_BLOCK_SIZE = 8 * 1024 * 1024;

@@ -204,7 +204,7 @@ private:
     lsn_t flushReqLSN;
     lsn_t nextLSN;
     lsn_t endRoundLSN;
-    shared_ptr<partition_t> currPartition;
+    std::shared_ptr<partition_t> currPartition;
     run_number_t selectionRun = 0;
     size_t bytesReadyForSelection = 0;
 

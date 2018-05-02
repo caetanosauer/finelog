@@ -75,6 +75,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <fcntl.h>
 #include <unistd.h>
 
+using namespace std;
+
 class ticker_thread_t : public thread_wrapper_t
 {
 public:

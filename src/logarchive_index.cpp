@@ -15,6 +15,8 @@
 #include "worker_thread.h"
 // #include "xct_logger.h"
 
+using namespace std;
+
 class RunRecycler : public worker_thread_t
 {
 public:

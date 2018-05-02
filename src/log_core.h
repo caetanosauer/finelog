@@ -96,7 +96,7 @@ public:
     void            flush(const lsn_t &lsn, bool block=true, bool signal=true, bool *ret_flushed=NULL);
     void    flush_all(bool block=true) { return flush(curr_lsn().advance(-1), block); }
 
-    logrec_t* fetch_direct(shared_ptr<partition_t> partition, lsn_t lsn);
+    logrec_t* fetch_direct(std::shared_ptr<partition_t> partition, lsn_t lsn);
 
     void            shutdown();
     void            truncate();
@@ -117,7 +117,7 @@ public:
     enum { SEGMENT_SIZE = 16384 * log_storage::BLOCK_SIZE };
 
     // Functions delegated to log_storage (CS TODO)
-    string make_log_name(uint32_t p)
+    std::string make_log_name(uint32_t p)
     {
         return _storage->make_log_name(p);
     }

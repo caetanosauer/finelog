@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+using namespace std;
+
 // CS TODO: use option
 const static int IO_BLOCK_COUNT = 8; // total buffer = 8MB
 

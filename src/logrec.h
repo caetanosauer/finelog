@@ -61,21 +61,12 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 #include "basics.h"
 #include "w_debug.h"
-
-/*  -- do not edit anything above this line --   </std-header>*/
-
-class rangeset_t;
-class RestoreBitmap;
-class xct_t;
-
 #include "lsn.h"
 
 // csauer: used to be in tid_t.h
 typedef uint64_t tid_t;
-
 // 1/4 of typical cache-line size (64B)
 constexpr size_t LogrecAlignment = 16;
-
 // csauer: used to be 3 * sizeof(generic_page)
 constexpr size_t MaxLogrecSize = 3 * 8192;
 
@@ -174,7 +165,7 @@ public:
     bool             is_cpsn() const;
     bool             is_system() const;
     bool             valid_header() const;
-    smsize_t         header_size() const;
+    uint32_t         header_size() const;
 
     template <class PagePtr>
     void             redo(PagePtr);
@@ -214,7 +205,7 @@ public:
     logrec_t(kind_t kind);
 
 public:
-    smsize_t             length() const;
+    uint32_t             length() const;
     kind_t               type() const;
     const char*          type_str() const
     {
@@ -252,7 +243,7 @@ public:
         return type() == kind_t::page_img_format_log;
     }
 
-    friend ostream& operator<<(ostream&, logrec_t&);
+    friend std::ostream& operator<<(std::ostream&, logrec_t&);
 
     enum category_t {
         /** should not happen. */
@@ -454,7 +445,7 @@ logrec_t::pid() const
     return header._pid;
 }
 
-inline smsize_t
+inline uint32_t
 logrec_t::length() const
 {
     return header._len;

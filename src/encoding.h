@@ -431,7 +431,7 @@ struct VariadicEncodingHelper<N, FieldEncoder, T, Types...>
 template <template <typename T> class FieldEncoder, typename... Types>
 using VariadicEncoder = VariadicEncodingHelper<sizeof...(Types), FieldEncoder, Types...>;
 
-template <>
+// template <>
 template <typename... Types>
 class InlineEncoder<std::tuple<Types...>>
 {

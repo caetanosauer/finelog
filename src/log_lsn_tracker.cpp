@@ -2,6 +2,7 @@
  * (c) Copyright 2014, Hewlett-Packard Development Company, LP
  */
 #include "log_lsn_tracker.h"
+#include "basics.h"
 #include "w_debug.h"
 #include "AtomicCounter.hpp"
 

@@ -2,11 +2,7 @@
  * (c) Copyright 2011-2014, Hewlett-Packard Development Company, LP
  */
 
-// CS TODO: this has to come before sm_base because w_base.h defines
-// a macro called "align", which is probably the name of a function
-// or something inside boost regex
 #include <boost/regex.hpp>
-
 #include <cstdio>
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -55,8 +55,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 #include <iostream>
 
-#include "w_base.h"
-
 /* FRJ: Major changes to lsn_t
  * Once the database runs long enough we will run out of
  * partition numbers (only 64k possible).

@@ -91,19 +91,19 @@ public:
     log_core(const std::string& logidr);
     virtual           ~log_core();
 
-    rc_t init();
+    void init();
 
     static const std::string IMPL_NAME;
 
-    rc_t            insert(logrec_t &r, lsn_t* l = NULL);
-    rc_t insert_raw(const char* src, size_t length, lsn_t* rlsn = nullptr);
-    rc_t            flush(const lsn_t &lsn, bool block=true, bool signal=true, bool *ret_flushed=NULL);
-    rc_t    flush_all(bool block=true) { return flush(curr_lsn().advance(-1), block); }
+    void            insert(logrec_t &r, lsn_t* l = NULL);
+    void insert_raw(const char* src, size_t length, lsn_t* rlsn = nullptr);
+    void            flush(const lsn_t &lsn, bool block=true, bool signal=true, bool *ret_flushed=NULL);
+    void    flush_all(bool block=true) { return flush(curr_lsn().advance(-1), block); }
 
     logrec_t* fetch_direct(shared_ptr<partition_t> partition, lsn_t lsn);
 
     void            shutdown();
-    rc_t            truncate();
+    void            truncate();
 
     lsn_t curr_lsn() const { return _curr_lsn; }
 
@@ -186,8 +186,8 @@ protected:
     void _acquire_buffer_space(CArraySlot* info, long size);
     lsn_t _copy_to_buffer(logrec_t &rec, long pos, long size, CArraySlot* info);
     bool _update_epochs(CArraySlot* info);
-    rc_t _join_carray(CArraySlot*& info, long& pos, int32_t size);
-    rc_t _leave_carray(CArraySlot* info, int32_t size);
+    void _join_carray(CArraySlot*& info, long& pos, int32_t size);
+    void _leave_carray(CArraySlot* info, int32_t size);
     void _copy_raw(CArraySlot* info, long& pos, const char* data, size_t size);
     /** @}*/
 

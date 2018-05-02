@@ -256,8 +256,6 @@ do {                                                                    \
  */
 #define    W_ADDR(x)    ((void *)(x))
 
-class w_rc_t;
-
 /** The mother base class for most types.  */
 class w_base_t {
 public:
@@ -267,7 +265,6 @@ public:
     typedef unsigned char    u_char;
     typedef unsigned short    u_short;
     typedef unsigned long    u_long;
-    // typedef w_rc_t        rc_t;
 
     /*
      * For statistics that are always 64-bit numbers
@@ -435,8 +432,6 @@ public:
 };
 
 #include "w_fill.h"
-#include "w_error.h"
-#include "w_rc.h"
 
 template<bool B> struct CompileTimeAssertion;
 /** \brief Compile-time assertion trick.

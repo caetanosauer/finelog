@@ -72,12 +72,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <unistd.h>
 #include <sys/time.h> // gettimeofday
 
-// TODO proper exception mechanism
-#define CHECK_ERRNO(n) \
-    if (n == -1) { \
-        W_FATAL_MSG(fcOS, << "Kernel errno code: " << errno); \
-    }
-
 partition_t::partition_t(log_storage *owner, partition_number_t num)
     : _num(num), _owner(owner),
       _fhdl(invalid_fhdl), _skip_logrec{kind_t::skip_log}, _delete_after_close(false)
@@ -120,7 +114,7 @@ char *block_of_zeros() {
  * a skip record
  * enough zeroes to make the entire write become a multiple of BLOCK_SIZE
  */
-rc_t partition_t::flush(
+void partition_t::flush(
         lsn_t lsn,  // needed so that we can set the lsn in the skip_log record
         const char* const buf,
         long start1,
@@ -207,7 +201,6 @@ rc_t partition_t::flush(
     } // end copy skip record
 
     fsync_delayed(_fhdl); // fsync
-    return RCOK;
 }
 
 void partition_t::read(logrec_t *&rp, lsn_t &ll)

@@ -97,7 +97,7 @@ public:
 
     virtual void do_work();
 
-    rc_t doMerge(unsigned level, unsigned fanin);
+    void doMerge(unsigned level, unsigned fanin);
 
 private:
     std::shared_ptr<ArchiveIndex> indir;

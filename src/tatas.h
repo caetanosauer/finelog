@@ -3,6 +3,7 @@
 
 #include "AtomicCounter.hpp"
 #include "w_defines.h"
+#include <pthread.h>
 
 #if MUTRACE_ENABLED_H
 #include <MUTrace/mutrace.h>

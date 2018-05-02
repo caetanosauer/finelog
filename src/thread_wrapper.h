@@ -4,7 +4,6 @@
 #include <thread>
 #include <memory>
 
-#include "w_rc.h"
 #include "latch.h"
 
 /*

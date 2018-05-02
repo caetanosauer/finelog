@@ -82,12 +82,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <fcntl.h>
 #include <unistd.h>
 
-// TODO proper exception mechanism
-#define CHECK_ERRNO(n) \
-    if (n == -1) { \
-        W_FATAL_MSG(fcOS, << "Kernel errno code: " << errno); \
-    }
-
 class ticker_thread_t : public thread_wrapper_t
 {
 public:
@@ -268,7 +262,7 @@ log_core::log_core(const std::string& logdir)
     }
 }
 
-rc_t log_core::init()
+void log_core::init()
 {
     // Consider this the beginning of log analysis so that
     // we can factor in the time it takes to load the fetch buffers
@@ -276,8 +270,6 @@ rc_t log_core::init()
         _ticker->fork();
     }
     start_flush_daemon();
-
-    return RCOK;
 }
 
 log_core::~log_core()
@@ -497,13 +489,13 @@ void log_core::_acquire_buffer_space(CArraySlot* info, long recsize)
     info->pos = start_pos + recsize; // coordinates groups of threads sharing a log allocation
     info->new_end = new_end; // eventually assigned to _cur_epoch
     info->new_base = new_base; // positive if we started a new partition
-    info->error = w_error_ok;
+    // info->error = w_error_ok;
 }
 
 /**
  * Finish current log partition and start writing to a new one.
  */
-rc_t log_core::truncate()
+void log_core::truncate()
 {
     // We want exclusive access to the log, so no CArray
     mcs_lock::qnode me;
@@ -526,8 +518,6 @@ rc_t log_core::truncate()
     }
 
     _insert_lock.release(&me);
-
-    return RCOK;
 }
 
 lsn_t log_core::_copy_to_buffer(logrec_t &rec, long pos, long recsize, CArraySlot* info)
@@ -603,7 +593,7 @@ bool log_core::_update_epochs(CArraySlot* info) {
     return false;
 }
 
-rc_t log_core::_join_carray(CArraySlot*& info, long& pos, int32_t size)
+void log_core::_join_carray(CArraySlot*& info, long& pos, int32_t size)
 {
     /* Copy our data into the buffer and update/create epochs. Note
        that, while we may race the flush daemon to update the epoch
@@ -649,10 +639,9 @@ rc_t log_core::_join_carray(CArraySlot*& info, long& pos, int32_t size)
         w_assert1(old_count > ConsolidationArray::SLOT_AVAILABLE);
         _carray->wait_for_leader(info);
     }
-    return RCOK;
 }
 
-rc_t log_core::_leave_carray(CArraySlot* info, int32_t size)
+void log_core::_leave_carray(CArraySlot* info, int32_t size)
 {
     // last one to leave cleans up
     carray_status_t end_count = lintel::unsafe::atomic_fetch_add<carray_status_t>(
@@ -661,55 +650,53 @@ rc_t log_core::_leave_carray(CArraySlot* info, int32_t size)
     // addition. So, we need to add it here again. atomic_add_fetch desired..
     w_assert3(end_count <= ConsolidationArray::SLOT_FINISHED);
     if(end_count == ConsolidationArray::SLOT_FINISHED) {
-        if(!info->error) {
+        // if(!info->error) {
             _update_epochs(info);
-        }
+        // }
     }
 
-    if(info->error) {
-        return RC(info->error);
-    }
-
-    return RCOK;
+    // CS TODO error handling
+    // if(info->error) {
+    //     return RC(info->error);
+    // }
 }
 
-rc_t log_core::insert_raw(const char* src, size_t length, lsn_t* rlsn)
+void log_core::insert_raw(const char* src, size_t length, lsn_t* rlsn)
 {
     CArraySlot* info = NULL;
     long pos = 0;
-    W_DO(_join_carray(info, pos, length));
+    _join_carray(info, pos, length);
     w_assert1(info);
 
     // insert my value
-    if(!info->error) {
+    // if(!info->error) {
         if (rlsn) { *rlsn = info->lsn + pos; }
         _copy_raw(info, pos, src, length);
-    }
+    // }
 
-    W_DO(_leave_carray(info, length));
+    _leave_carray(info, length);
 
     // INC_TSTAT(log_inserts);
     // ADD_TSTAT(log_bytes_generated,length);
-    return RCOK;
 }
 
-rc_t log_core::insert(logrec_t &rec, lsn_t* rlsn)
+void log_core::insert(logrec_t &rec, lsn_t* rlsn)
 {
     w_assert1(rec.length() <= sizeof(logrec_t));
     int32_t size = rec.length();
 
     CArraySlot* info = NULL;
     long pos = 0;
-    W_DO(_join_carray(info, pos, size));
+    _join_carray(info, pos, size);
     w_assert1(info);
 
     // insert my value
     lsn_t rec_lsn;
-    if(!info->error) {
+    // if(!info->error) {
         rec_lsn = _copy_to_buffer(rec, pos, size, info);
-    }
+    // }
 
-    W_DO(_leave_carray(info, size));
+    _leave_carray(info, size);
 
     if(rlsn) {
         *rlsn = rec_lsn;
@@ -718,7 +705,6 @@ rc_t log_core::insert(logrec_t &rec, lsn_t* rlsn)
 
     // INC_TSTAT(log_inserts);
     // ADD_TSTAT(log_bytes_generated,size);
-    return RCOK;
 }
 
 void log_core::_copy_raw(CArraySlot* info, long& pos, const char* data,
@@ -783,7 +769,7 @@ void log_core::_copy_raw(CArraySlot* info, long& pos, const char* data,
 
 // Return when we know that the given lsn is durable. Wait for the
 // log flush daemon to ensure that it's durable.
-rc_t log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flushed)
+void log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flushed)
 {
     DBGOUT3(<< " flush @ to_lsn: " << to_lsn);
 
@@ -799,7 +785,8 @@ rc_t log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flu
         if (!block) {
             *&_waiting_for_flush = true;
             if (signal) {
-                DO_PTHREAD(pthread_cond_signal(&_flush_cond));
+                int res = pthread_cond_signal(&_flush_cond);
+                w_assert0(res == 0);
             }
             if (ret_flushed) *ret_flushed = false; // not yet flushed
         }  else {
@@ -808,8 +795,10 @@ rc_t log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flu
                 *&_waiting_for_flush = true;
                 // Use signal since the only thread that should be waiting
                 // on the _flush_cond is the log flush daemon.
-                DO_PTHREAD(pthread_cond_signal(&_flush_cond));
-                DO_PTHREAD(pthread_cond_wait(&_wait_cond, &_wait_flush_lock));
+                int res = pthread_cond_signal(&_flush_cond);
+                w_assert0(res == 0);
+                res = pthread_cond_wait(&_wait_cond, &_wait_flush_lock);
+                w_assert0(res == 0);
             }
             if (ret_flushed) *ret_flushed = true;// now flushed!
         }
@@ -817,7 +806,6 @@ rc_t log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flu
         // INC_TSTAT(log_dup_sync_cnt);
         if (ret_flushed) *ret_flushed = true; // already flushed
     }
-    return RCOK;
 }
 
 /**\brief Log-flush daemon driver.
@@ -1013,7 +1001,7 @@ lsn_t log_core::flush_daemon_work(lsn_t old_mark)
             start2, end2);
 
     // Flush the log buffer
-    W_COERCE(p->flush(start_lsn, _buf, start1, end1, start2, end2));
+    p->flush(start_lsn, _buf, start1, end1, start2, end2);
     write_size = (end2 - start2) + (end1 - start1);
 
     _durable_lsn = end_lsn;

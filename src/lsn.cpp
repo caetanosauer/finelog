@@ -55,6 +55,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 /*  -- do not edit anything above this line --   </std-header>*/
 
 #include "lsn.h"
+#include <sstream>
 
 const lsn_t lsn_t::null(0, 0);
 const lsn_t lsn_t::max(lsn_t::file_hwm, lsn_t::mask());

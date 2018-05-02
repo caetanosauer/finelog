@@ -125,10 +125,10 @@ public:
     run_number_t getFirstRun(unsigned level);
 
     // run generation methods
-    rc_t openNewRun(unsigned level);
+    void openNewRun(unsigned level);
     void append(char* data, size_t length, unsigned level);
     void fsync(unsigned level);
-    rc_t closeCurrentRun(run_number_t currentRun, unsigned level, PageID maxPID = 0);
+    void closeCurrentRun(run_number_t currentRun, unsigned level, PageID maxPID = 0);
 
     // run scanning methods
     RunFile* openForScan(const RunId& runid);
@@ -143,7 +143,7 @@ public:
 
     void newBlock(const vector<pair<PageID, size_t> >& buckets, unsigned level);
 
-    rc_t finishRun(run_number_t first, run_number_t last, PageID maxPID,
+    void finishRun(run_number_t first, run_number_t last, PageID maxPID,
             int fd, off_t offset, unsigned level);
 
     template <class Input>

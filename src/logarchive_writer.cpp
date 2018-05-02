@@ -59,8 +59,7 @@ bool BlockAssembly::start(run_number_t run)
     if (!dest) {
         DBGTHRD(<< "Block request failed!");
         if (!writebuf->isFinished()) {
-            W_FATAL_MSG(fcINTERNAL,
-                    << "ERROR: write ring buffer refused produce request");
+            throw std::runtime_error("ERROR: write ring buffer refused produce request");
         }
         return false;
     }
@@ -182,7 +181,7 @@ void WriterThread::run()
              * that all pending blocks are written out before shutdown.
              */
             DBGTHRD(<< "Finished flag set on writer thread");
-            W_COERCE(index->closeCurrentRun(currentRun, level, maxPIDInRun));
+            index->closeCurrentRun(currentRun, level, maxPIDInRun);
             return; // finished is set on buf
         }
 
@@ -206,7 +205,7 @@ void WriterThread::run()
              *  bound on the next run, which allows us to verify whether
              *  holes exist in the archive.
              */
-            W_COERCE(index->closeCurrentRun(currentRun, level, maxPIDInRun));
+            index->closeCurrentRun(currentRun, level, maxPIDInRun);
             DBGTHRD(<< "Opening file for new run " << run);
             currentRun = run;
         }

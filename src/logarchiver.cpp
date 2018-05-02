@@ -274,7 +274,7 @@ void LogArchiver::run()
 
             // Forcibly close current run to guarantee that LSN is persisted
             PageID maxPID = blkAssemb->getCurrentMaxPID();
-            W_COERCE(index->closeCurrentRun(flushReqLSN.hi(), 1 /* level */, maxPID));
+            index->closeCurrentRun(flushReqLSN.hi(), 1 /* level */, maxPID);
             // blkAssemb->resetWriter();
 
             // CS FINELINE TODO: must guarantee that flushReqLSN.hi() will not
@@ -399,7 +399,7 @@ bool runComp(const RunId& a, const RunId& b)
     return a.begin < b.begin;
 }
 
-rc_t MergerDaemon::doMerge(unsigned level, unsigned fanin)
+void MergerDaemon::doMerge(unsigned level, unsigned fanin)
 {
     list<RunId> stats, statsNext;
     indir->listFileStats(stats, level);
@@ -409,7 +409,7 @@ rc_t MergerDaemon::doMerge(unsigned level, unsigned fanin)
         // CS TODO: merge policies
         DBGOUT3(<< "Not enough runs to merge: " << stats.size());
         ::sleep(1);
-        return RCOK;
+        return;
     }
 
     // sort list by run number, since only contiguous runs are merged
@@ -435,7 +435,7 @@ rc_t MergerDaemon::doMerge(unsigned level, unsigned fanin)
         // CS TODO: merge policies
         DBGOUT3(<< "Not enough runs to merge");
         ::sleep(1);
-        return RCOK;
+        return;
     }
 
     {
@@ -460,7 +460,5 @@ rc_t MergerDaemon::doMerge(unsigned level, unsigned fanin)
 
         blkAssemb.shutdown();
     }
-
-    return RCOK;
 }
 

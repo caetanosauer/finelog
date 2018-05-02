@@ -63,6 +63,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include "w_debug.h"
 
 #include <cstring>
+#include <iostream>
 #include <list>
 #include <algorithm>
 
@@ -316,16 +317,14 @@ public:
         (latch_holder_t *)(NULL) : &(*_it); }
 }; // holder_search
 
-w_rc_t
-latch_t::latch_acquire(latch_mode_t mode, int timeout_in_ms)
+AcquireResult latch_t::latch_acquire(latch_mode_t mode, int timeout_in_ms)
 {
     w_assert1(mode != LATCH_NL);
     holder_search me(this);
     return _acquire(mode, timeout_in_ms, me.value());
 }
 
-w_rc_t
-latch_t::upgrade_if_not_block(bool& would_block)
+void latch_t::upgrade_if_not_block(bool& would_block)
 {
     DBGTHRD(<< " want to upgrade " << *this );
     holder_search me(this);
@@ -336,16 +335,13 @@ latch_t::upgrade_if_not_block(bool& would_block)
     // already hold EX? DON'T INCREMENT THE COUNT!
     if(me->_mode == LATCH_EX) {
         would_block = false;
-        return RCOK;
+        return;
     }
 
-    w_rc_t rc = _acquire(LATCH_EX, timeout_t::WAIT_IMMEDIATE, me.value());
-    if(rc.is_error()) {
+    AcquireResult rc = _acquire(LATCH_EX, timeout_t::WAIT_IMMEDIATE, me.value());
+    if(rc != AcquireResult::OK) {
         // it never should have tried to block
-        w_assert3(rc.err_num() != stTIMEOUT);
-        if(rc.err_num() != stINUSE)
-            return RC_AUGMENT(rc);
-
+        w_assert1(rc == AcquireResult::WOULD_BLOCK);
         would_block = true;
     }
     else {
@@ -354,7 +350,6 @@ latch_t::upgrade_if_not_block(bool& would_block)
         me->_count--;
         would_block = false;
     }
-    return RCOK;
 }
 
 int latch_t::latch_release()
@@ -365,7 +360,7 @@ int latch_t::latch_release()
     return _release(me.value());
 }
 
-w_rc_t latch_t::_acquire(latch_mode_t new_mode,
+AcquireResult latch_t::_acquire(latch_mode_t new_mode,
     int timeout,
     latch_holder_t* me)
 {
@@ -406,7 +401,7 @@ w_rc_t latch_t::_acquire(latch_mode_t new_mode,
             // (bf find, bf scan, btree latch
             // INC_TSTAT(latch_uncondl_nowait);
 #endif
-            return RCOK;
+            return AcquireResult::OK;
         } else if(new_mode == LATCH_EX && me->_mode == LATCH_SH) {
             is_upgrade = true;
         }
@@ -422,8 +417,9 @@ w_rc_t latch_t::_acquire(latch_mode_t new_mode,
     if(is_upgrade) {
         // to avoid deadlock,
         // never block on upgrade
-        if(!_lock.attempt_upgrade())
-            return RC(stINUSE);
+        if(!_lock.attempt_upgrade()) {
+            return AcquireResult::WOULD_BLOCK;
+        }
 
         w_assert2(me->_count > 0);
         w_assert2(new_mode == LATCH_EX);
@@ -445,7 +441,7 @@ w_rc_t latch_t::_acquire(latch_mode_t new_mode,
             bool success = (new_mode == LATCH_SH)?
                 _lock.attempt_read() : _lock.attempt_write();
             if(!success)
-                return RC(stTIMEOUT);
+                return AcquireResult::TIMEOUT;
             // INC_TSTAT(latch_condl_nowait);
         }
         else {
@@ -483,7 +479,7 @@ w_rc_t latch_t::_acquire(latch_mode_t new_mode,
     lintel::unsafe::atomic_fetch_add(&_total_count, 1);// BUG_SEMANTICS_FIX
     me->_count++;// BUG_SEMANTICS_FIX
     DBGTHRD(<< "acquired " << *this );
-    return RCOK;
+    return AcquireResult::OK;
 }
 
 

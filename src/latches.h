@@ -3,7 +3,6 @@
 
 #include "w_base.h"
 #include "timeout.h"
-#include "w_pthread.h"
 #include "AtomicCounter.hpp"
 #include "tatas.h"
 

@@ -138,7 +138,7 @@ struct ArchiverControl {
 class ReaderThread : public log_worker_thread_t {
 protected:
     uint nextPartition;
-    rc_t openPartition();
+    bool openPartition();
 
     AsyncRingBuffer* buf;
     int currentFd;

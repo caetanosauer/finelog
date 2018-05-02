@@ -81,6 +81,13 @@ enum latch_mode_t { LATCH_NL = 0, LATCH_SH = 2, LATCH_EX = 3 };
 /// type of a Q mode ticket; exact type and location of definition TBD
 typedef int64_t q_ticket_t;
 
+/// Possible results of an acquire call
+enum class AcquireResult {
+    OK = 0,
+    WOULD_BLOCK, // Only valid with timeout_t::WAIT_IMMEDIATE
+    TIMEOUT
+};
+
 
 class latch_t;
 extern ostream &operator<<(ostream &, const latch_t &);
@@ -164,7 +171,7 @@ public:
     inline void             setname(const char *const desc);
 
     /// Acquire the latch in given mode. \sa  timeout_t.
-    w_rc_t                  latch_acquire(
+    AcquireResult                  latch_acquire(
                                 latch_mode_t             m,
                                 int timeout = timeout_t::WAIT_FOREVER);
     /**\brief Upgrade from SH to EX if it can be done w/o blocking.
@@ -173,7 +180,7 @@ public:
      * upgrade did occur.
      * \note Does \b not increment the count.
      */
-    w_rc_t                  upgrade_if_not_block(bool& would_block);
+    void                  upgrade_if_not_block(bool& would_block);
 
     /**\brief Convert atomically an EX latch into an SH latch.
      * \details
@@ -218,7 +225,7 @@ public:
 
 private:
     // found, iterator
-    w_rc_t                _acquire(latch_mode_t m,
+    AcquireResult                _acquire(latch_mode_t m,
                                  int timeout_in_ms,
                                  latch_holder_t* me);
 	// return #times this thread holds the latch after this release

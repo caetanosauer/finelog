@@ -154,12 +154,13 @@ fixed_lists_mem_t::~fixed_lists_mem_t()
  * an invalid slot (containing a null pointer). The calles should then attempt
  * to free more blocks before trying again.
  */
-rc_t fixed_lists_mem_t::allocate(size_t length, slot_t& slot)
+void fixed_lists_mem_t::allocate(size_t length, slot_t& slot)
 {
     // ERROUT(<< "ALLOC " << length);
     if (length > _max) {
-        ERROUT(<< "Cannot allocate block of " << length);
-        return RC(eINTERNAL);
+        stringstream ss;
+        ss << "Cannot allocate block of " << length;
+        throw std::runtime_error(ss.str());
     }
 
     size_t best_fit = list_header_t::get_best_fit(length, _incr);
@@ -183,7 +184,6 @@ rc_t fixed_lists_mem_t::allocate(size_t length, slot_t& slot)
         DBG(<< "NOT FOUND -- No space for " << length << " bytes");
         slot.address = NULL;
         slot.length = 0;
-        return RCOK;
     }
 
     MM_VERIFY(verify_block(addr));
@@ -204,7 +204,6 @@ rc_t fixed_lists_mem_t::allocate(size_t length, slot_t& slot)
 
     slot.address = addr + sizeof(list_header_t);
     slot.length = best_fit;
-    return RCOK;
 }
 
 /*
@@ -216,7 +215,7 @@ rc_t fixed_lists_mem_t::allocate(size_t length, slot_t& slot)
  * is incremented accordingly, and the block pointer updated if the block to
  * the left is coalesced.
  */
-rc_t fixed_lists_mem_t::free(slot_t slot)
+void fixed_lists_mem_t::free(slot_t slot)
 {
     // ERROUT(<< "DEALLOC " << slot.length);
     DBG(<< "Freeing block of " << slot.length);
@@ -259,14 +258,13 @@ rc_t fixed_lists_mem_t::free(slot_t slot)
     }
 
     add_to_list(block_size, p_addr);
-    return RCOK;
 }
 
 /**
  * WARNING: This defrag method assumes that all blocks were freed
  * beforehand (e.g. the overlying heap is empty)
  */
-rc_t fixed_lists_mem_t::defrag()
+void fixed_lists_mem_t::defrag()
 {
     for (size_t i = 0; i <= _max/_incr; i++) {
         _lists[i] = NULL;
@@ -276,7 +274,6 @@ rc_t fixed_lists_mem_t::defrag()
         char* add = _buf + (_max * i);
         add_to_list(_max, add);
     }
-    return RCOK;
 }
 
 #ifdef MM_TEST

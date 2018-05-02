@@ -334,7 +334,11 @@ RunFile* ArchiveIndex::openForScan(const RunId& runid)
     if (!file.data) {
         fs::path fpath = make_run_path(runid.begin, runid.end, runid.level);
         int flags = O_RDONLY;
+#ifdef __linux__
         if (directIO) { flags |= O_DIRECT; }
+#else
+        w_assert0(!directIO);
+#endif
         file.fd = ::open(fpath.string().c_str(), flags, 0744 /*mode*/);
         CHECK_ERRNO(file.fd);
         file.length = ArchiveIndex::getFileSize(file.fd);

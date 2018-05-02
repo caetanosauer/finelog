@@ -4,8 +4,6 @@
 #include <thread>
 #include <memory>
 
-#include "latch.h"
-
 /*
  * The sole purpose of this class is to replace sthread_t with as little code impact as
  * possible -- new code should use the C++11 thread library directly (as soon as the TODO
@@ -44,9 +42,6 @@ public:
         // csauer: TSTATS not used in finelog
         // smlevel_0::add_to_global_stats(smthread_t::TL_stats()); // before detaching them
         // smthread_t::remove_me_from_thread_list();
-
-        // latch_t maintains some static data structures that must be deleted manually
-        latch_t::on_thread_destroy();
     }
 
     void fork()

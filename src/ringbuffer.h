@@ -4,6 +4,7 @@
 #include "w_defines.h"
 #include "basics.h"
 #include "w_debug.h"
+#include "latches.h"
 
 /**
  * Simple implementation of a circular IO buffer for the archiver reader,
@@ -53,6 +54,7 @@ public:
         finished(false), blockSize(bsize), blockCount(bcount)
     {
         buf = new char[blockCount * blockSize];
+        // CS TODO replace with <mutex>
         DO_PTHREAD(pthread_mutex_init(&mutex, NULL));
         DO_PTHREAD(pthread_cond_init(&notEmpty, NULL));
         DO_PTHREAD(pthread_cond_init(&notFull, NULL));
@@ -125,6 +127,7 @@ inline bool AsyncRingBuffer::wait(pthread_cond_t* cond, bool isProducer)
 
 inline char* AsyncRingBuffer::producerRequest()
 {
+    // CS TODO: use unique_lock
     CRITICAL_SECTION(cs, mutex);
     while (isFull()) {
         DBGTHRD(<< "Waiting for condition notFull ...");

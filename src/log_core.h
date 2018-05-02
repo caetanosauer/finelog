@@ -79,8 +79,7 @@ class ticker_thread_t;
 class flush_daemon_thread_t;
 
 #include "partition.h"
-#include "mcs_lock.h"
-#include "tatas.h"
+#include "latches.h"
 #include "log_storage.h"
 #include "stopwatch.h"
 #include "epoch_tracker.h"

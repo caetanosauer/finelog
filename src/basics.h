@@ -32,6 +32,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 #include <type_traits>
 #include <cstdint>
+#include <cstddef>
 
 /* For types of store, volumes, see stid_t.h and vid_t.h */
 

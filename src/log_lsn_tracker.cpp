@@ -6,6 +6,8 @@
 #include "w_debug.h"
 #include "AtomicCounter.hpp"
 
+#include <cstring>
+
 using namespace std;
 
 // use this to compute highest prime #

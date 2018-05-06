@@ -25,7 +25,9 @@
 */
 
 #include "log_carray.h"
+
 #include <thread>
+#include <cstring>
 
 void ConsolidationArray::wait_for_leader(CArraySlot* info) {
     long old_count;

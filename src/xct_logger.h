@@ -1,7 +1,7 @@
 #ifndef XCT_LOGGER_H
 #define XCT_LOGGER_H
 
-#include "log_core.h"
+#include "log.h"
 // CS TODO: these headers specified specific B-tree operations to be logged
 // #include "logrec_support.h"
 // #include "logrec_serialize.h"

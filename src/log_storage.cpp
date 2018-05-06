@@ -12,7 +12,7 @@
 #include <algorithm>
 
 #include "log_storage.h"
-#include "log_core.h"
+#include "log.h"
 #include "latches.h"
 #include "worker_thread.h"
 

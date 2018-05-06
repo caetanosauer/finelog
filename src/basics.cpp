@@ -26,29 +26,10 @@ void global_assert_failed(
 }
 
 #ifdef W_TRACE
-w_debug _w_debug("debug", getenv("DEBUG_FILE"));
+debug_t _debug("debug", getenv("DEBUG_FILE"));
 #endif
 
-
-#ifdef USE_REGEX
-bool        _w_debug::re_ready = false;
-regex_t     _w_debug::re_posix_re;
-char*       _w_debug::re_error_str = "Bad regular expression";
-#endif /* USE_REGEX */
-
-// I'm ambivalent about making this thread-safe.
-// To do so would require moving this and all related tests into
-// sthread/.
-// The disadvantage is that it would that much more change the
-// timing of things.
-// The errlog and such is most useful for debugging single-threaded
-// tests anyway, and still somewhat useful for mt stuff despite this
-// being not-safe; it would clearly change the timing for mt situations
-// we're trying to debug; I think it's probably more useful to
-// decipher mixed-up debugging output for those cases.
-//
-
-w_debug::w_debug(const char* /*n*/, const char* /*f*/)
+debug_t::debug_t(const char* /*n*/, const char* /*f*/)
 {
 #ifdef USE_REGEX
     //re_ready = false;
@@ -88,7 +69,7 @@ w_debug::w_debug(const char* /*n*/, const char* /*f*/)
     assert( !( none() && all() ) );
 }
 
-w_debug::~w_debug()
+debug_t::~debug_t()
 {
     if(_flags) delete [] _flags;
     _flags = NULL;
@@ -96,7 +77,7 @@ w_debug::~w_debug()
 }
 
 void
-w_debug::setflags(const char *newflags)
+debug_t::setflags(const char *newflags)
 {
     if(!newflags) return;
 #ifdef USE_REGEX
@@ -122,41 +103,8 @@ w_debug::setflags(const char *newflags)
     assert( !( none() && all() ) );
 }
 
-#ifdef USE_REGEX
 int
-w_debug::re_exec_debug(const char* string)
-{
-    if (!re_ready)  {
-        cerr << __LINE__
-        << " " << __FILE__
-        << ": No compiled string." <<endl;
-        return 0;
-    }
-    int match = (re_exec_posix(string)==1);
-    return  match;
-}
-
-char*
-w_debug::re_comp_debug(const char* pattern)
-{
-    if (re_ready)
-        regfree(&re_posix_re);
-    char *res;
-
-    res = re_comp_posix(pattern);
-    if(res) {
-        cerr << __LINE__
-        << " " << __FILE__
-        << " Error in re_comp_debug: " << res << endl;
-    }
-    re_ready = true;
-    return NULL;
-}
-#endif /* USE_REGEX */
-
-
-int
-w_debug::flag_on(
+debug_t::flag_on(
     const char *fn,
     const char *file
 )

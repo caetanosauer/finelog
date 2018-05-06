@@ -42,39 +42,6 @@ typedef uint32_t    StoreID;
 // Used in log archive
 typedef int32_t run_number_t;
 
-/* Type of a record# on a page  in SM (sans page,store,volume info) */
-typedef int16_t slotid_t;
-
-/**
-* \brief An integer to point to any record in B-tree pages.
-* \details
-* -1 if foster-child, 0 if pid0, 1 or larger if real child.
-* Same as slotid_t, but used to avoid confusion.
-*/
-typedef int16_t general_recordid_t;
-/**
- * \brief Defines constant values/methods for general_recordid_t.
- */
-struct GeneralRecordIds {
-    enum ConstantValues {
-        /** "Record not found" etc. */
-        INVALID = -2,
-        /** Represents a foster child record. */
-        FOSTER_CHILD = -1,
-        /** Represents a PID0 record. */
-        PID0 = 0,
-        /** Represents the first real child. */
-        REAL_CHILD_BEGIN = 1,
-    };
-
-    static slotid_t from_general_to_slot(general_recordid_t general) {
-        return general - 1;
-    }
-    static general_recordid_t from_slot_to_general(slotid_t slot) {
-        return slot + 1;
-    }
-};
-
 /**
 * \brief CPU Cache line size in bytes.
 * \details
@@ -84,16 +51,6 @@ struct GeneralRecordIds {
 * TODO: CMake script to automatically detect this and cmakedefine for it (JIRA ZERO-179).
 */
 const size_t CACHELINE_SIZE = 64;
-
-/* XXX duplicates w_base types. */
-const int32_t    max_int4 = 0x7fffffff;         /*  (1 << 31) - 1;  */
-const int32_t    max_int4_minus1 = max_int4 -1;
-const int32_t    min_int4 = 0x80000000;         /* -(1 << 31);        */
-
-const uint16_t    max_uint2 = 0xffff;
-const uint16_t    min_uint2 = 0;
-const uint32_t    max_uint4 = 0xffffffff;
-const uint32_t    min_uint4 = 0;
 
 template<typename E>
 constexpr auto enum_to_base(E e) -> typename std::underlying_type<E>::type

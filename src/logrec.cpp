@@ -2,8 +2,10 @@
  * (c) Copyright 2011-2014, Hewlett-Packard Development Company, LP
  */
 
+#include "logrec.h"
+
 #include <sstream>
-#include "logrec_handler.h"
+#include <cstring>
 
 using namespace std;
 
@@ -126,30 +128,30 @@ void logrec_t::redo(PagePtr page)
 {
     DBG( << "Redo  log rec: " << *this << " size: " << header._len);
 
-    switch (base_to_enum<kind_t>(header._type))  {
-        case kind_t::alloc_page_log : LogrecHandler<kind_t::alloc_page_log, PagePtr>::redo(this, page); break;
-        case kind_t::dealloc_page_log : LogrecHandler<kind_t::dealloc_page_log, PagePtr>::redo(this, page); break;
-        case kind_t::alloc_format_log : LogrecHandler<kind_t::alloc_format_log, PagePtr>::redo(this, page); break;
-        case kind_t::stnode_format_log : LogrecHandler<kind_t::stnode_format_log, PagePtr>::redo(this, page); break;
-        case kind_t::create_store_log : LogrecHandler<kind_t::create_store_log, PagePtr>::redo(this, page); break;
-        case kind_t::append_extent_log : LogrecHandler<kind_t::append_extent_log, PagePtr>::redo(this, page); break;
-        case kind_t::page_img_format_log : LogrecHandler<kind_t::page_img_format_log, PagePtr>::redo(this, page); break;
-        case kind_t::update_emlsn_log : LogrecHandler<kind_t::update_emlsn_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_insert_log : LogrecHandler<kind_t::btree_insert_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_insert_nonghost_log : LogrecHandler<kind_t::btree_insert_nonghost_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_update_log : LogrecHandler<kind_t::btree_update_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_overwrite_log : LogrecHandler<kind_t::btree_overwrite_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_ghost_mark_log : LogrecHandler<kind_t::btree_ghost_mark_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_ghost_reclaim_log : LogrecHandler<kind_t::btree_ghost_reclaim_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_ghost_reserve_log : LogrecHandler<kind_t::btree_ghost_reserve_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_foster_adopt_log : LogrecHandler<kind_t::btree_foster_adopt_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_unset_foster_log : LogrecHandler<kind_t::btree_unset_foster_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_bulk_delete_log : LogrecHandler<kind_t::btree_bulk_delete_log, PagePtr>::redo(this, page); break;
-        case kind_t::btree_compress_page_log : LogrecHandler<kind_t::btree_compress_page_log, PagePtr>::redo(this, page); break;
-        default:
-            w_fatal("Log record type does not support redo");
-            break;
-    }
+//     switch (base_to_enum<kind_t>(header._type))  {
+//         case kind_t::alloc_page_log : LogrecHandler<kind_t::alloc_page_log, PagePtr>::redo(this, page); break;
+//         case kind_t::dealloc_page_log : LogrecHandler<kind_t::dealloc_page_log, PagePtr>::redo(this, page); break;
+//         case kind_t::alloc_format_log : LogrecHandler<kind_t::alloc_format_log, PagePtr>::redo(this, page); break;
+//         case kind_t::stnode_format_log : LogrecHandler<kind_t::stnode_format_log, PagePtr>::redo(this, page); break;
+//         case kind_t::create_store_log : LogrecHandler<kind_t::create_store_log, PagePtr>::redo(this, page); break;
+//         case kind_t::append_extent_log : LogrecHandler<kind_t::append_extent_log, PagePtr>::redo(this, page); break;
+//         case kind_t::page_img_format_log : LogrecHandler<kind_t::page_img_format_log, PagePtr>::redo(this, page); break;
+//         case kind_t::update_emlsn_log : LogrecHandler<kind_t::update_emlsn_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_insert_log : LogrecHandler<kind_t::btree_insert_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_insert_nonghost_log : LogrecHandler<kind_t::btree_insert_nonghost_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_update_log : LogrecHandler<kind_t::btree_update_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_overwrite_log : LogrecHandler<kind_t::btree_overwrite_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_ghost_mark_log : LogrecHandler<kind_t::btree_ghost_mark_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_ghost_reclaim_log : LogrecHandler<kind_t::btree_ghost_reclaim_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_ghost_reserve_log : LogrecHandler<kind_t::btree_ghost_reserve_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_foster_adopt_log : LogrecHandler<kind_t::btree_foster_adopt_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_unset_foster_log : LogrecHandler<kind_t::btree_unset_foster_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_bulk_delete_log : LogrecHandler<kind_t::btree_bulk_delete_log, PagePtr>::redo(this, page); break;
+//         case kind_t::btree_compress_page_log : LogrecHandler<kind_t::btree_compress_page_log, PagePtr>::redo(this, page); break;
+//         default:
+//             w_fatal("Log record type does not support redo");
+//             break;
+//     }
 
     page->set_version(page_version());
 }

@@ -61,64 +61,6 @@ private:
     char* truncBuf;
 };
 
-/** \brief Object to control execution of background threads.
- *
- * Encapsulates an activation loop that relies on pthread condition variables.
- * The background thread calls waitForActivation() while it waits for an
- * activation from an orchestrating thread. Before calling this method,
- * however, it must acquire the mutex, in order to obey the pthread wait
- * protocol.  Once its work is complete, the activated state is unsed and the
- * mutex must be released. In practice, therefore, waitForActivation() is
- * usually invoked as follows.
- *
- * \code{.cpp}
-    while (true) {
-        CRITICAL_SECTION(cs, control.mutex);
-        bool activated = control.waitForActivation();
-        if (!activated) {
-            break;
-        }
-
-        // do work...
-
-    } // mutex released due to CRITICAL_SECTION macro
- * \endcode
- *
- * The wait for an activation is interrupted either by receiving a signal or by
- * setting a shutdown flag, in which case the method returns false. The flag is
- * simply a pointer to some external boolean variable, which means that the
- * background thread "watches for" a shutdown flag somewhere else. The
- * orchestrating thread calls activate() to wake up the background thread,
- * causing the waitForActivation() call to return with true.  The wait
- * parameter makes the activation wait to acquire the mutex, which guarantees
- * that the signal was sent. Otherwise, if the mutex is already held (i.e.,
- * background thread is already running) the method returns false immediately.
- *
- * Optionally, the activate method accepts an lsn, which is stored in endLSN,
- * but only if it is greater than the currently set value. This class does not
- * interpret this LSN value. It is only used by the background thread itself
- * as a marker for the end of its job. This is useful for threads that consume
- * its owrk units from the log, such as LogArchiver or ReaderThread. Other
- * thread classes may completely ignore this variable.
- *
- * \sa LogArchiver, LogArchiver::ReaderThread
- *
- * \author Caetano Sauer
- */
-struct ArchiverControl {
-    pthread_mutex_t mutex;
-    pthread_cond_t activateCond;
-    lsn_t endLSN;
-    bool activated;
-    bool listening;
-    std::atomic<bool>* shutdownFlag;
-
-    ArchiverControl(std::atomic<bool>* shutdown);
-    ~ArchiverControl();
-    bool activate(bool wait, lsn_t lsn = lsn_t::null);
-    bool waitForActivation();
-};
-
 /** \brief Asynchronous reader thread for the recovery log.
  *
  * Similarly to the LogArchiver itself, this thread operates on activation

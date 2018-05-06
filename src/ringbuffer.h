@@ -1,7 +1,7 @@
 #ifndef FINELOG_RINGBUFFER_H
 #define FINELOG_RINGBUFFER_H
 
-#include "basics.h"
+#include "finelog_basics.h"
 
 #include <mutex>
 #include <condition_variable>

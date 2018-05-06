@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "basics.h"
+#include "finelog_basics.h"
 #include "lsn.h"
 #include "thread_wrapper.h"
 

@@ -55,7 +55,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 */
 
 #include "thread_wrapper.h"
-#include "basics.h"
 #include "logrec.h"
 #include "log.h"
 #include "log_carray.h"

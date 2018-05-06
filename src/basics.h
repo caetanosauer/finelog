@@ -27,8 +27,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#ifndef BASICS_H
-#define BASICS_H
+#ifndef FINELOG_BASICS_H
+#define FINELOG_BASICS_H
 
 #include <type_traits>
 #include <cstdint>

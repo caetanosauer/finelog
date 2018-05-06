@@ -1,5 +1,5 @@
-#ifndef THREAD_WRAPPER_H
-#define THREAD_WRAPPER_H
+#ifndef FINELOG_THREAD_WRAPPER_H
+#define FINELOG_THREAD_WRAPPER_H
 
 #include <thread>
 #include <memory>

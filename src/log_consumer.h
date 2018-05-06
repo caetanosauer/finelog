@@ -1,5 +1,5 @@
-#ifndef LOG_CONSUMER_H
-#define LOG_CONSUMER_H
+#ifndef FINELOG_LOG_CONSUMER_H
+#define FINELOG_LOG_CONSUMER_H
 
 #include <bitset>
 

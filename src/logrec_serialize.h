@@ -1,5 +1,5 @@
-#ifndef LOGREC_SERIALIZE_H
-#define LOGREC_SERIALIZE_H
+#ifndef FINELOG_LOGREC_SERIALIZE_H
+#define FINELOG_LOGREC_SERIALIZE_H
 
 #include "encoding.h"
 #include "logrec.h"

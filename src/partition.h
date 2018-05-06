@@ -55,8 +55,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#ifndef PARTITION_H
-#define PARTITION_H
+#ifndef FINELOG_PARTITION_H
+#define FINELOG_PARTITION_H
 
 #include "logrec.h"
 #include <mutex>

@@ -54,8 +54,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#ifndef LOGREC_H
-#define LOGREC_H
+#ifndef FINELOG_LOGREC_H
+#define FINELOG_LOGREC_H
 
 #include <array>
 

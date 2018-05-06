@@ -1,5 +1,5 @@
-#ifndef LOGREC_HANDLER_H
-#define LOGREC_HANDLER_H
+#ifndef FINELOG_LOGREC_HANDLER_H
+#define FINELOG_LOGREC_HANDLER_H
 
 #include "encoding.h"
 #include "logrec.h"

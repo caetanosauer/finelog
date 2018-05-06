@@ -1,5 +1,5 @@
-#ifndef LOGARCHIVER_H
-#define LOGARCHIVER_H
+#ifndef FINELOG_LOGARCHIVER_H
+#define FINELOG_LOGARCHIVER_H
 
 #include "worker_thread.h"
 #include "logarchive_index.h"

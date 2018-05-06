@@ -1,5 +1,5 @@
-#ifndef LOGARCHIVE_INDEX_H
-#define LOGARCHIVE_INDEX_H
+#ifndef FINELOG_LOGARCHIVE_INDEX_H
+#define FINELOG_LOGARCHIVE_INDEX_H
 
 #include <vector>
 #include <list>

@@ -1,6 +1,6 @@
 #include "logarchiver.h"
 
-#include "log_core.h"
+#include "log.h"
 // #include "bf_tree.h" // to check for warmup
 #include "logarchive_scanner.h" // CS TODO just for RunMerger -- remove
 #include "stopwatch.h"

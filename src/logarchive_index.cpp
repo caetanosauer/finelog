@@ -10,7 +10,7 @@
 #include "w_debug.h"
 #include "lsn.h"
 #include "latches.h"
-#include "log_core.h"
+#include "log.h"
 #include "stopwatch.h"
 #include "worker_thread.h"
 // #include "xct_logger.h"

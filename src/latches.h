@@ -1,7 +1,7 @@
 #ifndef FINELOG_LATCHES_H
 #define FINELOG_LATCHES_H
 
-#include "basics.h"
+#include "finelog_basics.h"
 #include "AtomicCounter.hpp"
 #include <list>
 #include <thread>

@@ -2,7 +2,6 @@
  * (c) Copyright 2011-2014, Hewlett-Packard Development Company, LP
  */
 
-#include "basics.h"
 #include <sstream>
 #include "logrec_handler.h"
 

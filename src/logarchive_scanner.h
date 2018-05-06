@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 
-#include "basics.h"
 #include "logarchive_index.h"
 
 class ArchiveIndex;

@@ -59,7 +59,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 #include <array>
 
-#include "basics.h"
+#include "finelog_basics.h"
 #include "lsn.h"
 
 // csauer: used to be in tid_t.h

@@ -14,7 +14,7 @@ typedef fixed_lists_mem_t::slot_t slot_t;
 
 const static int DFT_BLOCK_SIZE = 8 * 1024 * 1024;
 
-LogArchiver::LogArchiver(const std::string& archdir, log_core* log, bool format, bool merge)
+LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool format, bool merge)
     : log(log), shutdownFlag(false), flushReqLSN(lsn_t::null)
 {
     w_assert0(log);

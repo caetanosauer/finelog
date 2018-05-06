@@ -81,11 +81,11 @@ class flush_daemon_thread_t;
 #include "stopwatch.h"
 #include "epoch_tracker.h"
 
-class log_core
+class LogManager
 {
 public:
-    log_core(const std::string& logidr);
-    virtual           ~log_core();
+    LogManager(const std::string& logidr);
+    virtual           ~LogManager();
 
     void init();
 
@@ -141,7 +141,7 @@ public:
 protected:
 
     char*                _buf; // log buffer: _segsize buffer into which
-                         // inserts copy log records with log_core::insert
+                         // inserts copy log records with LogManager::insert
 
     ticker_thread_t* _ticker;
 
@@ -149,7 +149,7 @@ protected:
     lsn_t           _durable_lsn;
 
     // Set of pointers into _buf (circular log buffer)
-    // and associated lsns. See detailed comments at log_core::insert
+    // and associated lsns. See detailed comments at LogManager::insert
     struct epoch {
         lsn_t base_lsn; // lsn of _buf[0] for this epoch
 
@@ -317,6 +317,6 @@ protected:
 
     bool directIO;
 
-}; // log_core
+}; // LogManager
 
 #endif

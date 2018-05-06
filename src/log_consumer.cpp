@@ -347,12 +347,12 @@ bool LogConsumer::next(logrec_t*& lr, lsn_t* lsn)
     // w_assert1(!scanned || lr->lsn_ck() + lr->length() == nextLSN);
 
     // CS TODO: support skip logrec with finelog
-    if (!scanned || (lrLength > 0 && lr->type() == kind_t::skip_log)) {
+    if (!scanned || (lrLength > 0 && lr->is_eof())) {
         /*
          * nextLogrec returning false with nextLSN != endLSN means that we are
          * suppose to read another block and call the method again.
          */
-        if (scanned && lr->type() == kind_t::skip_log) {
+        if (scanned && lr->is_eof()) {
             // Try again if reached skip -- next block should be from next file
             nextLSN = lsn_t(nextLSN.hi() + 1, 0);
             pos = 0;

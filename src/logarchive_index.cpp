@@ -258,7 +258,7 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, Page
                 // register index information and write it on end of file
                 if (appendPos[level] > 0) {
                     // take into account space for skip log record
-                    appendPos[level] += logrec_t::get_skip_log().length();
+                    appendPos[level] += sizeof(baseLogHeader);
                 }
             }
 
@@ -298,13 +298,13 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, Page
 void ArchiveIndex::append(char* data, size_t length, unsigned level)
 {
     // Precondition: there is always space for a skip log record at the end (see BlockAssembly::spaceToReserve)
-    memcpy(data + length, &logrec_t::get_skip_log(), logrec_t::get_skip_log().length());
+    memcpy(data + length, &logrec_t::get_eof_logrec(), logrec_t::get_eof_logrec().length());
 
     // beginning of block must be a valid log record
     w_assert1(reinterpret_cast<logrec_t*>(data)->valid_header());
 
     // INC_TSTAT(la_block_writes);
-    auto ret = ::pwrite(appendFd[level], data, length + logrec_t::get_skip_log().length(),
+    auto ret = ::pwrite(appendFd[level], data, length + logrec_t::get_eof_logrec().length(),
                 appendPos[level]);
     CHECK_ERRNO(ret);
     appendPos[level] += length;
@@ -584,9 +584,9 @@ void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
             entry++;
         }
         // Assert that skip log record is right before the index
-        off_t skip_offset = index_offset - logrec_t::get_skip_log().length();
+        off_t skip_offset = index_offset - logrec_t::get_eof_logrec().length();
         w_assert0(skip_offset < index_offset);
-        w_assert0(memcmp(runFile->getOffset(skip_offset), &logrec_t::get_skip_log(), logrec_t::get_skip_log().length()) == 0);
+        w_assert0(memcmp(runFile->getOffset(skip_offset), &logrec_t::get_eof_logrec(), logrec_t::get_eof_logrec().length()) == 0);
     }
 
     run.begin = fstats.begin;

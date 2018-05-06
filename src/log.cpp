@@ -27,7 +27,7 @@
 
 /*<std-header orig-src='shore'>
 
- $Id: log_core.cpp,v 1.20 2010/12/08 17:37:42 nhall Exp $
+ $Id: LogManager.cpp,v 1.20 2010/12/08 17:37:42 nhall Exp $
 
 SHORE -- Scalable Heterogeneous Object REpository
 
@@ -114,9 +114,9 @@ private:
 
 class flush_daemon_thread_t : public thread_wrapper_t
 {
-    log_core* _log;
+    LogManager* _log;
 public:
-    flush_daemon_thread_t(log_core* log) :
+    flush_daemon_thread_t(LogManager* log) :
          _log(log)
     {
     }
@@ -124,13 +124,13 @@ public:
     virtual void run() { _log->flush_daemon(); }
 };
 
-void log_core::start_flush_daemon()
+void LogManager::start_flush_daemon()
 {
     _flush_daemon_running = true;
     _flush_daemon->fork();
 }
 
-logrec_t* log_core::fetch_direct(shared_ptr<partition_t> p, lsn_t lsn)
+logrec_t* LogManager::fetch_direct(shared_ptr<partition_t> p, lsn_t lsn)
 {
     logrec_t* res;
     w_assert1(p);
@@ -140,7 +140,7 @@ logrec_t* log_core::fetch_direct(shared_ptr<partition_t> p, lsn_t lsn)
     return res;
 }
 
-void log_core::shutdown()
+void LogManager::shutdown()
 {
     // gnats 52:  RACE: We set _shutting_down and signal between the time
     // the daemon checks _shutting_down (false) and waits.
@@ -167,14 +167,14 @@ void log_core::shutdown()
 
 /*********************************************************************
  *
- *  log_core::log_core(bufsize, reformat)
+ *  LogManager::LogManager(bufsize, reformat)
  *
  *  Open and scan logdir for master lsn and last log file.
  *  Truncate last incomplete log record (if there is any)
  *  from the last log file.
  *
  *********************************************************************/
-log_core::log_core(const std::string& logdir)
+LogManager::LogManager(const std::string& logdir)
     :
       _start(0),
       _end(0),
@@ -257,7 +257,7 @@ log_core::log_core(const std::string& logdir)
     }
 }
 
-void log_core::init()
+void LogManager::init()
 {
     // Consider this the beginning of log analysis so that
     // we can factor in the time it takes to load the fetch buffers
@@ -267,7 +267,7 @@ void log_core::init()
     start_flush_daemon();
 }
 
-log_core::~log_core()
+LogManager::~LogManager()
 {
     if (_ticker) {
         _ticker->shutdown();
@@ -288,7 +288,7 @@ log_core::~log_core()
     DO_PTHREAD(pthread_cond_destroy(&_flush_cond));
 }
 
-void log_core::_acquire_buffer_space(CArraySlot* info, long recsize)
+void LogManager::_acquire_buffer_space(CArraySlot* info, long recsize)
 {
     w_assert2(recsize > 0);
 
@@ -490,7 +490,7 @@ void log_core::_acquire_buffer_space(CArraySlot* info, long recsize)
 /**
  * Finish current log partition and start writing to a new one.
  */
-void log_core::truncate()
+void LogManager::truncate()
 {
     // We want exclusive access to the log, so no CArray
     mcs_lock::qnode me;
@@ -515,7 +515,7 @@ void log_core::truncate()
     _insert_lock.release(&me);
 }
 
-lsn_t log_core::_copy_to_buffer(logrec_t &rec, long pos, long recsize, CArraySlot* info)
+lsn_t LogManager::_copy_to_buffer(logrec_t &rec, long pos, long recsize, CArraySlot* info)
 {
     /*
       do the memcpy (or two)
@@ -529,7 +529,7 @@ lsn_t log_core::_copy_to_buffer(logrec_t &rec, long pos, long recsize, CArraySlo
     return rlsn;
 }
 
-bool log_core::_update_epochs(CArraySlot* info) {
+bool LogManager::_update_epochs(CArraySlot* info) {
     w_assert1(info->vthis()->count == ConsolidationArray::SLOT_FINISHED);
     // Wait for our predecessor to catch up if we're ahead.
     // Even though the end pointer we're checking wraps regularly, we
@@ -588,7 +588,7 @@ bool log_core::_update_epochs(CArraySlot* info) {
     return false;
 }
 
-void log_core::_join_carray(CArraySlot*& info, long& pos, int32_t size)
+void LogManager::_join_carray(CArraySlot*& info, long& pos, int32_t size)
 {
     /* Copy our data into the buffer and update/create epochs. Note
        that, while we may race the flush daemon to update the epoch
@@ -636,7 +636,7 @@ void log_core::_join_carray(CArraySlot*& info, long& pos, int32_t size)
     }
 }
 
-void log_core::_leave_carray(CArraySlot* info, int32_t size)
+void LogManager::_leave_carray(CArraySlot* info, int32_t size)
 {
     // last one to leave cleans up
     carray_status_t end_count = lintel::unsafe::atomic_fetch_add<carray_status_t>(
@@ -656,7 +656,7 @@ void log_core::_leave_carray(CArraySlot* info, int32_t size)
     // }
 }
 
-void log_core::insert_raw(const char* src, size_t length, lsn_t* rlsn)
+void LogManager::insert_raw(const char* src, size_t length, lsn_t* rlsn)
 {
     CArraySlot* info = NULL;
     long pos = 0;
@@ -675,7 +675,7 @@ void log_core::insert_raw(const char* src, size_t length, lsn_t* rlsn)
     // ADD_TSTAT(log_bytes_generated,length);
 }
 
-void log_core::insert(logrec_t &rec, lsn_t* rlsn)
+void LogManager::insert(logrec_t &rec, lsn_t* rlsn)
 {
     w_assert1(rec.length() <= sizeof(logrec_t));
     int32_t size = rec.length();
@@ -702,7 +702,7 @@ void log_core::insert(logrec_t &rec, lsn_t* rlsn)
     // ADD_TSTAT(log_bytes_generated,size);
 }
 
-void log_core::_copy_raw(CArraySlot* info, long& pos, const char* data,
+void LogManager::_copy_raw(CArraySlot* info, long& pos, const char* data,
         size_t size)
 {
     // are we the ones that actually wrap? (do this *after* computing the lsn!)
@@ -742,7 +742,7 @@ void log_core::_copy_raw(CArraySlot* info, long& pos, const char* data,
  * the log buffer, returning the LSN of the first byte in rlsn. This is used
  * by the atomic commit protocol (see plog_xct_t::_commit) (Caetano).
  */
-/*rc_t log_core::insert_bulk(char* data, size_t size, lsn_t*& rlsn)
+/*rc_t LogManager::insert_bulk(char* data, size_t size, lsn_t*& rlsn)
 {
     CArraySlot* info = NULL;
     long pos = 0;
@@ -764,7 +764,7 @@ void log_core::_copy_raw(CArraySlot* info, long& pos, const char* data,
 
 // Return when we know that the given lsn is durable. Wait for the
 // log flush daemon to ensure that it's durable.
-void log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flushed)
+void LogManager::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flushed)
 {
     DBGOUT3(<< " flush @ to_lsn: " << to_lsn);
 
@@ -808,7 +808,7 @@ void log_core::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_flu
  * This method handles the wait/block of the daemon thread,
  * and when awake, calls its main-work method, flush_daemon_work.
  */
-void log_core::flush_daemon()
+void LogManager::flush_daemon()
 {
     /* Algorithm: attempt to flush non-durable portion of the buffer.
      * If we empty out the buffer, block until either enough
@@ -867,7 +867,7 @@ void log_core::flush_daemon()
         last_completed_flush_lsn=lsn) ;
 }
 
-bool log_core::_should_group_commit(long write_size)
+bool LogManager::_should_group_commit(long write_size)
 {
     // Do not flush if write size is less than group commit size
     if (write_size < _group_commit_size) {
@@ -898,7 +898,7 @@ bool log_core::_should_group_commit(long write_size)
  * \return Latest durable lsn resulting from this flush
  *
  */
-lsn_t log_core::flush_daemon_work(lsn_t old_mark)
+lsn_t LogManager::flush_daemon_work(lsn_t old_mark)
 {
     lsn_t base_lsn_before, base_lsn_after;
     long base, start1, end1, start2, end2, write_size;
@@ -1010,7 +1010,7 @@ lsn_t log_core::flush_daemon_work(lsn_t old_mark)
     return end_lsn;
 }
 
-lsn_t log_core::get_oldest_active_lsn()
+lsn_t LogManager::get_oldest_active_lsn()
 {
     return _oldest_lsn_tracker->get_oldest_active_lsn(curr_lsn());
 }

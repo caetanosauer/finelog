@@ -40,7 +40,7 @@ public:
  * Opens log files in logdir and initializes partitions as well as the
  * given LSN's. The buffer given in prime_buf is primed with the contents
  * found in the last block of the last partition -- this logic was moved
- * from the various prime methods of the old log_core.
+ * from the various prime methods of the old LogManager.
  */
 log_storage::log_storage(const std::string& logdir, size_t partition_size, bool reformat, bool delete_old_partitions)
     : _curr_partition(nullptr)
@@ -62,7 +62,7 @@ log_storage::log_storage(const std::string& logdir, size_t partition_size, bool 
     // option given in MB -> convert to B
     psize = psize * 1024 * 1024;
     // round to next multiple of the log buffer segment size
-    psize = (psize / log_core::SEGMENT_SIZE) * log_core::SEGMENT_SIZE;
+    psize = (psize / LogManager::SEGMENT_SIZE) * LogManager::SEGMENT_SIZE;
     w_assert0(psize > 0);
     _partition_size = psize;
 
@@ -114,7 +114,7 @@ shared_ptr<partition_t> log_storage::get_partition_for_flush(lsn_t start_lsn,
 {
     w_assert1(end1 >= start1);
     w_assert1(end2 >= start2);
-    // time to open a new partition? (used to be in log_core::insert,
+    // time to open a new partition? (used to be in LogManager::insert,
     // now called by log flush daemon)
     // This will open a new file when the given start_lsn has a
     // different file() portion from the current partition()'s

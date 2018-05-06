@@ -15,7 +15,7 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
-class log_core;
+class LogManager;
 class LogScanner;
 
 /**
@@ -172,7 +172,7 @@ private:
  */
 class LogArchiver : public thread_wrapper_t {
 public:
-    LogArchiver(const std::string& archdir, log_core* log, bool format, bool merge);
+    LogArchiver(const std::string& archdir, LogManager* log, bool format, bool merge);
     virtual ~LogArchiver();
 
     virtual void run();
@@ -194,7 +194,7 @@ public:
     const static int DFT_GRACE_PERIOD = 1000000; // 1 sec
 
 private:
-    log_core* log;
+    LogManager* log;
     std::shared_ptr<ArchiveIndex> index;
     ArchiverHeapSimple* heap;
     BlockAssembly* blkAssemb;

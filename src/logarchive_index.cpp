@@ -7,7 +7,6 @@
 #include <fcntl.h>
 #include <sstream>
 
-#include "w_debug.h"
 #include "lsn.h"
 #include "latches.h"
 #include "log.h"

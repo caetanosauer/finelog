@@ -1,7 +1,6 @@
 #include "latches.h"
 
 #include "basics.h"
-#include "w_debug.h"
 
 #include <cstring>
 #include <iostream>

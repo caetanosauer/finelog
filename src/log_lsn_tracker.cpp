@@ -3,7 +3,6 @@
  */
 #include "log_lsn_tracker.h"
 #include "basics.h"
-#include "w_debug.h"
 #include "AtomicCounter.hpp"
 
 #include <cstring>

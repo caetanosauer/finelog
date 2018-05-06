@@ -271,7 +271,7 @@ typedef    std::ios::fmtflags    w_dbg_fmtflags;
 
 /* ************************************************************************
  *
- * Class w_debug, macros DBG, DBG_NONL, DBG1, DBG1_NONL:
+ * Class debug_t, macros DBG, DBG_NONL, DBG1, DBG1_NONL:
  */
 
 
@@ -285,7 +285,7 @@ typedef    std::ios::fmtflags    w_dbg_fmtflags;
  * should be sent. If DEBUG_FILE is not set, the output goes to
  * stderr.
  */
-class w_debug {
+class debug_t {
     private:
         char *_flags;
         enum { _all = 0x1, _none = 0x2 };
@@ -296,15 +296,15 @@ class w_debug {
         int            none(void) { return (mask & _none) ? 1 : 0; }
 
     public:
-        w_debug(const char *n, const char *f);
-        ~w_debug();
+        debug_t(const char *n, const char *f);
+        ~debug_t();
         int flag_on(const char *fn, const char *file);
         const char *flags() { return _flags; }
         void setflags(const char *newflags);
         void memdump(void *p, int len); // hex dump of memory
         int trace_level() { return _trace_level; }
 };
-extern w_debug _w_debug;
+extern debug_t _debug;
 
 
 // I wanted to use google-logging (glog), but changing all of the existing code
@@ -323,7 +323,7 @@ extern w_debug _w_debug;
        std::cerr << ss.str() << endl;
 
 #define DBGOUT(a) do { \
-    if(_w_debug.flag_on(__func__,_strip_filename(__FILE__))) { \
+    if(_debug.flag_on(__func__,_strip_filename(__FILE__))) { \
         DBGPRINT(a, __FILE__, __LINE__); \
     } \
  } while (0);
@@ -417,13 +417,13 @@ extern w_debug _w_debug;
 #if defined(W_TRACE)
 
 #    define DBG2(a,file,line) \
-        w_dbg_fmtflags old = _w_debug.clog.setf(ios::dec, ios::basefield); \
-        _w_debug.clog  << _strip_filename(file) << ":" << line << ":" ; \
-        _w_debug.clog.setf(old, ios::basefield); \
-        _w_debug.clog  a    << endl;
+        w_dbg_fmtflags old = _debug.clog.setf(ios::dec, ios::basefield); \
+        _debug.clog  << _strip_filename(file) << ":" << line << ":" ; \
+        _debug.clog.setf(old, ios::basefield); \
+        _debug.clog  a    << endl;
 
 #    define DBG1(a) do {\
-    if(_w_debug.flag_on(__func__,__FILE__)) {                \
+    if(_debug.flag_on(__func__,__FILE__)) {                \
         DBG2(a,__FILE__,__LINE__) \
     } } while(0)
 

@@ -43,7 +43,7 @@ void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin,
         if (it->open(startPID)) {
             auto lr = it->logrec();
             it++;
-            if (singlePage && lr->is_page_img_format()) {
+            if (singlePage && lr->has_page_img()) {
                 // Any entries beyond it (including it are ignored)
                 heapBegin = it.base();
                 // ADD_TSTAT(la_img_trimmed, heapBegin - inputs.begin());
@@ -125,9 +125,10 @@ ArchiveScan::~ArchiveScan()
 
 void ArchiveScan::dumpHeap()
 {
-    for (auto it = heapBegin; it != heapEnd; it++) {
-        std::cout << *(it->logrec()) << std::endl;
-    }
+    // CS TODO: implement operator<< in interpreter
+    // for (auto it = heapBegin; it != heapEnd; it++) {
+    //     std::cout << *(it->logrec()) << std::endl;
+    // }
 }
 
 logrec_t* MergeInput::logrec()
@@ -168,7 +169,7 @@ bool MergeInput::finished()
 {
     if (!runFile || runFile->length == 0) { return true; }
     auto lr = logrec();
-    return lr->is_skip() || (endPID != 0 && lr->pid() >= endPID);
+    return lr->is_eof() || (endPID != 0 && lr->pid() >= endPID);
 }
 
 void MergeInput::next()

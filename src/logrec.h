@@ -58,124 +58,79 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define FINELOG_LOGREC_H
 
 #include <array>
+#include <limits>
+#include <cstring>
 
 #include "finelog_basics.h"
 #include "lsn.h"
 
-// csauer: used to be in tid_t.h
-typedef uint64_t tid_t;
 // 1/4 of typical cache-line size (64B)
 constexpr size_t LogrecAlignment = 16;
-// csauer: used to be 3 * sizeof(generic_page)
-constexpr size_t MaxLogrecSize = 3 * 8192;
 
+// CS TODO: disable alignment and measure tradeoff in space consumption vs CPU overhead
 struct alignas(LogrecAlignment) baseLogHeader
 {
-    PageID _pid;
-    uint32_t _page_version;
-    uint16_t _len;
-    uint8_t _type;
+   uint32_t _pid;
+   uint32_t _page_version;
+   uint16_t _len;
+   uint8_t _type;
 
-    bool is_valid() const;
+   bool is_valid() const;
 };
 
 static_assert(sizeof(baseLogHeader) == 16, "Wrong logrec header size");
 
-enum class kind_t : uint8_t {
-    comment_log = 0,
-    // compensate_log = 1,
-    skip_log = 2,
-    chkpt_begin_log = 3,
-    // t_chkpt_bf_tab = 4,
-    // t_chkpt_xct_tab = 5,
-    // t_chkpt_xct_lock = 6,
-    warmup_done_log = 7,
-    alloc_format_log = 8,
-    evict_page_log = 9,
-    add_backup_log = 10,
-    // xct_abort_log = 11,
-    fetch_page_log = 12,
-    xct_end_log = 13,
-    // t_xct_end_group = 14,
-    xct_latency_dump_log = 15,
-    alloc_page_log = 16,
-    dealloc_page_log = 17,
-    create_store_log = 18,
-    append_extent_log = 19,
-    loganalysis_begin_log = 20,
-    loganalysis_end_log = 21,
-    redo_done_log = 22,
-    undo_done_log = 23,
-    restore_begin_log = 24,
-    restore_segment_log = 25,
-    restore_end_log = 26,
-    // t_page_set_to_be_deleted = 27,
-    stnode_format_log = 27,
-    page_img_format_log = 28,
-    update_emlsn_log = 29,
-    // t_btree_norec_alloc = 30,
-    btree_insert_log = 31,
-    btree_insert_nonghost_log = 32,
-    btree_update_log = 33,
-    btree_overwrite_log = 34,
-    btree_ghost_mark_log = 35,
-    btree_ghost_reclaim_log = 36,
-    btree_ghost_reserve_log = 37,
-    btree_foster_adopt_log = 38,
-    btree_unset_foster_log = 39,
-    // t_btree_foster_rebalance = 40,
-    // t_btree_foster_rebalance_norec = 41,
-    // t_btree_foster_deadopt = 42,
-    btree_bulk_delete_log = 43,
-    btree_compress_page_log = 44,
-    tick_sec_log = 45,
-    tick_msec_log = 46,
-    benchmark_start_log = 47,
-    page_write_log = 48,
-    page_read_log = 49,
-    t_max_logrec = 50
-};
-
-/**
- * \brief Represents a transactional log record.
- * \ingroup SSMLOG
- * \details
- * A log record's space is divided between a header and data.
- * All log records' headers include the information contained in baseLogHeader.
- * Log records pertaining to transactions that produce multiple log records
- * also persist a transaction id chain (_xid and _xid_prv).
- *
- * \section OPT Optimization for single-log system transaction
- * For single-log system transaction, header items in xidChainLogHeader are not stored.
- * instead, we use these area as data area to save 16 bytes.
- * we do need to keep these 8 bytes aligned. and this is a bit dirty trick.
- * however, we really need it to reduce the volume of log we output for system transactions.
- */
-class logrec_t {
+class logrec_t final {
 public:
-    friend class XctLogger;
-    friend class sysevent;
+    static constexpr size_t MaxLogrecSize = 3 * 8192;
+    static constexpr size_t MaxDataSize = MaxLogrecSize - sizeof(baseLogHeader);
+    static constexpr uint8_t MaxLogrecType = std::numeric_limits<uint8_t>::max();
+
     friend class baseLogHeader;
 
-    bool             is_page_update() const;
-    bool             is_redo() const;
-    bool             is_skip() const;
-    bool             is_undo() const;
-    bool             is_cpsn() const;
-    bool             is_system() const;
-    bool             valid_header() const;
-    uint32_t         header_size() const;
+    using PageID = uint32_t;
+    using StoreID = uint16_t;
 
-    template <class PagePtr>
-    void             redo(PagePtr);
+    logrec_t() = default;
+    // constructor used for data-less (i.e., system) log records
+    logrec_t(uint8_t type);
 
-    static constexpr u_char get_logrec_cat(kind_t type);
+    enum flags_t {
+        /** invalid log record type */
+        t_bad   = 0,
+        /** System log record: not transaction- or page-related; no undo/redo */
+        t_system    = 1 << 0,
+        /** log with UNDO action? */
+        t_undo      = 1 << 1,
+        /** log with REDO action? */
+        t_redo      = 1 << 2,
+        /** has page image */
+        t_page_img  = 1  << 3,
+        /** is an EOF log record, i.e., indicates end of log file */
+        t_eof  = 1  << 4
+    };
 
-    void redo();
+    // Initialize flags table
+    template <typename Iter>
+    static void initialize_flags(Iter begin, Iter end)
+    {
+        flags.fill(t_bad);
+        auto it = begin;
+        unsigned count = 0;
+        while (it != end) {
+           w_assert0(count < MaxLogrecType);
+           // EOF flag is for internal use
+           w_assert0(*it < t_eof && *it > 0);
+           flags[count++] = *it;
+           it++;
+        }
+        // Max is reserved for EOF
+        flags[MaxLogrecType] = t_eof;
+    }
 
-    static void undo(kind_t type, StoreID stid, const char* data);
+    bool valid_header() const;
 
-    void init_header(kind_t, PageID = 0);
+    void init_header(uint8_t type, PageID = 0);
 
     void set_pid(PageID pid)
     {
@@ -184,35 +139,30 @@ public:
 
     void set_size(size_t l);
 
-
-    enum {
-        // max_sz = 3 * sizeof(generic_page),
-        max_sz = MaxLogrecSize,
-        hdr_sz = sizeof(baseLogHeader),
-        max_data_sz = max_sz - hdr_sz
-    };
-
-    tid_t   tid() const;
-    StoreID        stid() const;
-    PageID         pid() const;
-
-    // Gives an initialized skip log record
-    static const logrec_t& get_skip_log();
-
-    logrec_t() = default;
-    // constructor used for data-less (i.e., system) log records
-    logrec_t(kind_t kind);
-
-public:
-    uint32_t             length() const;
-    kind_t               type() const;
-    const char*          type_str() const
+    const char* data() const
     {
-        return get_type_str(type());
+        return _data;
     }
-    static const char*   get_type_str(kind_t);
-    const char*          data() const;
-    char*                data();
+
+    char* data()
+    {
+        return _data;
+    }
+
+    PageID pid() const
+    {
+       return header._pid;
+    }
+
+    uint32_t length() const
+    {
+        return header._len;
+    }
+
+    uint8_t type() const
+    {
+        return header._type;
+    }
 
     uint32_t page_version() const
     {
@@ -224,61 +174,62 @@ public:
         header._page_version = version;
     }
 
-    void                 corrupt();
-
-    // Tells whether this log record restores a full page image, meaning
-    // that the previous history is not needed during log replay.
-    bool has_page_img()
+    uint8_t get_flags() const
     {
-        return
-             (type() == kind_t::page_img_format_log)
-            || (type() == kind_t::stnode_format_log)
-            || (type() == kind_t::alloc_format_log)
-            ;
+        return flags[type()];
     }
 
-    bool is_page_img_format()
+    bool is_system() const
     {
-        return type() == kind_t::page_img_format_log;
+        return (get_flags() & t_system) != 0;
     }
 
-    friend std::ostream& operator<<(std::ostream&, logrec_t&);
+    bool is_redo() const
+    {
+        return (get_flags() & t_redo) != 0;
+    }
 
-    enum category_t {
-        /** should not happen. */
-        t_bad_cat   = 0x00,
-        /** System log record: not transaction- or page-related; no undo/redo */
-        t_system    = 0x01,
-        /** log with UNDO action? */
-        t_undo      = 0x02,
-        /** log with REDO action? */
-        t_redo      = 0x04,
-    };
+    bool is_eof() const
+    {
+        return (get_flags() & t_eof) != 0;
+    }
 
-    u_char             cat() const;
+    bool is_undo() const
+    {
+        return (get_flags() & t_undo) != 0;
+    }
 
-protected:
+    bool has_page_img() const
+    {
+        return (get_flags() & t_page_img) != 0;
+    }
 
+    static const logrec_t& get_eof_logrec()
+    {
+        static logrec_t lr{MaxLogrecType};
+        return lr;
+    }
+
+private:
     baseLogHeader header;
+    char _data[MaxDataSize];
 
-    char            _data[max_data_sz];
-
-
-public:
-    // overloaded new/delete operators for tailored memory management
-    void* operator new(size_t);
-    void operator delete(void*, size_t);
-
-    // CS: apparently we have to define placement new as well if the standard
-    // new is overloaded
-    void* operator new(size_t, void* p) { return p; }
+    // Mapping table of log record types to their flags
+    static std::array<uint8_t, sizeof(uint8_t)> flags;
 };
+
+inline bool baseLogHeader::is_valid() const
+{
+   return (_len >= sizeof(baseLogHeader)
+         && logrec_t::flags[_type] != logrec_t::t_bad
+         && _len <= sizeof(logrec_t));
+}
 
 struct UndoEntry
 {
     uint16_t offset;
     StoreID store;
-    kind_t type;
+    uint8_t type;
 };
 
 class UndoBuffer
@@ -331,7 +282,7 @@ public:
         return get_buffer_end();
     }
 
-    void release(size_t length, StoreID store, kind_t type)
+    void release(size_t length, StoreID store, uint8_t type)
     {
         _entries[_count].store = store;
         _entries[_count].type = type;
@@ -352,10 +303,10 @@ public:
         return StoreID{0};
     }
 
-    kind_t get_type(size_t i)
+    uint8_t get_type(size_t i)
     {
         if (i < _count) { return _entries[i].type; }
-        return kind_t::t_max_logrec;
+        w_assert0(false);
     }
 };
 
@@ -421,127 +372,38 @@ public:
     }
 };
 
-inline bool baseLogHeader::is_valid() const
-{
-    return (_len >= sizeof(baseLogHeader)
-            && _type < enum_to_base(kind_t::t_max_logrec)
-            && _len <= sizeof(logrec_t));
-}
+#define LOGREC_ALIGNON 0x8
+#define LOGREC_ALIGNON1 (LOGREC_ALIGNON-1)
+#define LOGREC_ALIGN_BYTE(sz) ((size_t)((sz + LOGREC_ALIGNON1) & ~LOGREC_ALIGNON1))
 
-// for single-log system transaction, we use tid/_xid_prev as data area!
-inline const char*  logrec_t::data() const
+void logrec_t::set_size(size_t l)
 {
-    return _data;
-}
-inline char*  logrec_t::data()
-{
-    return _data;
-}
-
-inline PageID
-logrec_t::pid() const
-{
-    return header._pid;
-}
-
-inline uint32_t
-logrec_t::length() const
-{
-    return header._len;
-}
-
-inline kind_t
-logrec_t::type() const
-{
-    return (kind_t) header._type;
-}
-
-inline u_char
-logrec_t::cat() const
-{
-    return get_logrec_cat(static_cast<kind_t>(header._type));
-}
-
-inline bool
-logrec_t::is_system() const
-{
-    return (cat() & t_system) != 0;
-}
-
-inline bool
-logrec_t::is_redo() const
-{
-    return (cat() & t_redo) != 0;
-}
-
-inline bool
-logrec_t::is_skip() const
-{
-    return type() == kind_t::skip_log;
-}
-
-inline bool
-logrec_t::is_undo() const
-{
-    return (cat() & t_undo) != 0;
-}
-
-inline bool
-logrec_t::is_page_update() const
-{
-    // CS: I have no idea why a compensation log record is not considered a
-    // page update. In fact every check of in_page_update() is or'ed with
-    // is_cpsn()
-    return is_redo() && !is_cpsn();
-}
-
-constexpr u_char logrec_t::get_logrec_cat(kind_t type)
-{
-    switch (type) {
-        case kind_t::comment_log : return t_system;
-	case kind_t::tick_sec_log : return t_system;
-	case kind_t::tick_msec_log : return t_system;
-	case kind_t::benchmark_start_log : return t_system;
-	case kind_t::page_write_log : return t_system;
-	case kind_t::page_read_log : return t_system;
-	case kind_t::skip_log : return t_system;
-	case kind_t::chkpt_begin_log : return t_system;
-	case kind_t::loganalysis_begin_log : return t_system;
-	case kind_t::loganalysis_end_log : return t_system;
-	case kind_t::redo_done_log : return t_system;
-	case kind_t::undo_done_log : return t_system;
-        case kind_t::warmup_done_log: return t_system;
-	case kind_t::restore_begin_log : return t_system;
-	case kind_t::restore_segment_log : return t_system;
-	case kind_t::restore_end_log : return t_system;
-	case kind_t::xct_latency_dump_log : return t_system;
-	case kind_t::add_backup_log : return t_system;
-	case kind_t::evict_page_log : return t_system;
-	case kind_t::fetch_page_log : return t_system;
-	case kind_t::xct_end_log : return t_system;
-
-        case kind_t::alloc_page_log : return t_redo;
-	case kind_t::stnode_format_log : return t_redo;
-	case kind_t::alloc_format_log : return t_redo;
-	case kind_t::dealloc_page_log : return t_redo;
-	case kind_t::create_store_log : return t_redo;
-	case kind_t::append_extent_log : return t_redo;
-	case kind_t::page_img_format_log : return t_redo;
-	case kind_t::update_emlsn_log : return t_redo;
-	case kind_t::btree_insert_log : return t_redo|t_undo;
-	case kind_t::btree_insert_nonghost_log : return t_redo|t_undo;
-	case kind_t::btree_update_log : return t_redo|t_undo;
-	case kind_t::btree_overwrite_log : return t_redo|t_undo;
-	case kind_t::btree_ghost_mark_log : return t_redo|t_undo;
-	case kind_t::btree_ghost_reclaim_log : return t_redo;
-	case kind_t::btree_ghost_reserve_log : return t_redo;
-	case kind_t::btree_foster_adopt_log : return t_redo;
-	case kind_t::btree_unset_foster_log : return t_redo;
-	case kind_t::btree_bulk_delete_log : return t_redo;
-	case kind_t::btree_compress_page_log : return t_redo;
-
-        default: return t_bad_cat;
+    char *dat = data();
+    if (l != LOGREC_ALIGN_BYTE(l)) {
+        // zero out extra space to keep purify happy
+        ::memset(dat+l, 0, LOGREC_ALIGN_BYTE(l)-l);
     }
+    unsigned int tmp = LOGREC_ALIGN_BYTE(l) + sizeof(baseLogHeader);
+    tmp = (tmp + 7) & unsigned(-8); // force 8-byte alignment
+    w_assert1(tmp <= sizeof(*this));
+    header._len = tmp;
+}
+
+logrec_t::logrec_t(uint8_t type)
+{
+    header._type = type;
+    header._pid = 0;
+    header._page_version = 0;
+    set_size(0);
+}
+
+void logrec_t::init_header(uint8_t type, PageID pid)
+{
+    header._type = type;
+    header._pid = pid;
+    header._page_version = 0;
+    // CS TODO: for most logrecs, set_size is called twice
+    set_size(0);
 }
 
 #endif          /*</std-footer>*/

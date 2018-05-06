@@ -203,7 +203,7 @@ void LogArchiver::replacement()
 
         auto lr = log->fetch_direct(currPartition, nextLSN);
 
-        if (lr->is_skip()) {
+        if (lr->is_eof()) {
             nextLSN = lsn_t(nextLSN.hi() + 1, 0);
             continue;
         }

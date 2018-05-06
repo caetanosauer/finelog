@@ -84,19 +84,6 @@ private:
     }
 };
 
-// timeout given in ms (csauer: copied from smthread.cpp)
-void timeout_to_timespec(int timeout, struct timespec &when)
-{
-    w_assert1(timeout != timeout_t::WAIT_IMMEDIATE);
-    w_assert1(timeout != timeout_t::WAIT_FOREVER);
-    if(timeout > 0) {
-	::clock_gettime(CLOCK_REALTIME, &when);
-	when.tv_nsec += (uint64_t) timeout * 1000000;
-	when.tv_sec += when.tv_nsec / 1000000000;
-	when.tv_nsec = when.tv_nsec % 1000000000;
-    }
-}
-
 inline char* AsyncRingBuffer::producerRequest()
 {
     std::unique_lock<std::mutex> lck{mtx};

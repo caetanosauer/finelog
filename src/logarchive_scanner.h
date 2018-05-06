@@ -1,5 +1,5 @@
-#ifndef LOGARCHIVE_SCANNER_H
-#define LOGARCHIVE_SCANNER_H
+#ifndef FINELOG_LOGARCHIVE_SCANNER_H
+#define FINELOG_LOGARCHIVE_SCANNER_H
 
 #include <iostream>
 #include <memory>

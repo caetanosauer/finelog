@@ -1,5 +1,5 @@
-#ifndef XCT_LOGGER_H
-#define XCT_LOGGER_H
+#ifndef FINELOG_XCT_LOGGER_H
+#define FINELOG_XCT_LOGGER_H
 
 #include "log.h"
 // CS TODO: these headers specified specific B-tree operations to be logged

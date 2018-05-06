@@ -54,8 +54,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#ifndef LOG_STORAGE_H
-#define LOG_STORAGE_H
+#ifndef FINELOG_LOG_STORAGE_H
+#define FINELOG_LOG_STORAGE_H
 
 #include "partition.h"
 #include "latches.h" // for mcs_rwlock

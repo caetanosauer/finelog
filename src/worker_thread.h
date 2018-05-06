@@ -1,5 +1,5 @@
-#ifndef WORKER_THREAD_H
-#define WORKER_THREAD_H
+#ifndef FINELOG_WORKER_THREAD_H
+#define FINELOG_WORKER_THREAD_H
 
 #include "thread_wrapper.h"
 #include "lsn.h"

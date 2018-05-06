@@ -1,5 +1,5 @@
-#ifndef EPOCH_TRACKER_H
-#define EPOCH_TRACKER_H
+#ifndef FINELOG_EPOCH_TRACKER_H
+#define FINELOG_EPOCH_TRACKER_H
 
 #include <array>
 #include <atomic>

@@ -1,5 +1,5 @@
-#ifndef LATCHES_H
-#define LATCHES_H
+#ifndef FINELOG_LATCHES_H
+#define FINELOG_LATCHES_H
 
 #include "basics.h"
 #include "AtomicCounter.hpp"

@@ -1,5 +1,5 @@
-#ifndef MEM_MGMT_H
-#define MEM_MGMT_H
+#ifndef FINELOG_MEM_MGMT_H
+#define FINELOG_MEM_MGMT_H
 
 #include <cstring>
 #include <cstdint>

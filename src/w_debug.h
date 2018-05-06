@@ -50,8 +50,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#ifndef W_DEBUG_H
-#define W_DEBUG_H
+#ifndef FINELOG_W_DEBUG_H
+#define FINELOG_W_DEBUG_H
 
 /**\file w_debug.h
  *\ingroup MACROS

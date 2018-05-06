@@ -1,5 +1,5 @@
-#ifndef RINGBUFFER_H
-#define RINGBUFFER_H
+#ifndef FINELOG_RINGBUFFER_H
+#define FINELOG_RINGBUFFER_H
 
 #include "basics.h"
 

@@ -27,8 +27,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#ifndef W_HEAP_H
-#define W_HEAP_H
+#ifndef FINELOG_W_HEAP_H
+#define FINELOG_W_HEAP_H
 
 /**\brief General-purpose heap.
  *

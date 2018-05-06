@@ -55,8 +55,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 */
 
-#ifndef LOG_CORE_H
-#define LOG_CORE_H
+#ifndef FINELOG_LOG_H
+#define FINELOG_LOG_H
 
 #include "AtomicCounter.hpp"
 #include <vector> // only for _collect_single_page_recovery_logs()

@@ -60,7 +60,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <array>
 
 #include "basics.h"
-#include "w_debug.h"
 #include "lsn.h"
 
 // csauer: used to be in tid_t.h

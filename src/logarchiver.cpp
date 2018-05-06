@@ -4,7 +4,6 @@
 // #include "bf_tree.h" // to check for warmup
 #include "logarchive_scanner.h" // CS TODO just for RunMerger -- remove
 #include "stopwatch.h"
-#include "w_debug.h"
 
 #include <algorithm>
 

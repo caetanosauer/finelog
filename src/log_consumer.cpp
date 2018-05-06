@@ -1,7 +1,6 @@
 #include "log_consumer.h"
 
 #include "log.h"
-#include "w_debug.h"
 
 // files and stuff
 #include <sys/types.h>

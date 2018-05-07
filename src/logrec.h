@@ -92,8 +92,14 @@ public:
     using StoreID = uint16_t;
 
     logrec_t() = default;
-    // constructor used for data-less (i.e., system) log records
-    logrec_t(uint8_t type);
+
+    logrec_t(uint8_t type)
+    {
+        header._type = type;
+        header._pid = 0;
+        header._page_version = 0;
+        set_size(0);
+    }
 
     enum flags_t {
         /** invalid log record type */
@@ -128,16 +134,41 @@ public:
         flags[MaxLogrecType] = t_eof;
     }
 
-    bool valid_header() const;
-
-    void init_header(uint8_t type, PageID = 0);
+    void init_header(uint8_t type, PageID pid = 0)
+    {
+        header._type = type;
+        header._pid = pid;
+        header._page_version = 0;
+        // CS TODO: for most logrecs, set_size is called twice
+        set_size(0);
+    }
 
     void set_pid(PageID pid)
     {
         header._pid = pid;
     }
 
-    void set_size(size_t l);
+    bool valid_header() const
+    {
+        return header.is_valid();
+    }
+
+#define LOGREC_ALIGNON 0x8
+#define LOGREC_ALIGNON1 (LOGREC_ALIGNON-1)
+#define LOGREC_ALIGN_BYTE(sz) ((size_t)((sz + LOGREC_ALIGNON1) & ~LOGREC_ALIGNON1))
+
+    void set_size(size_t l)
+    {
+        char *dat = data();
+        if (l != LOGREC_ALIGN_BYTE(l)) {
+            // zero out extra space to keep purify happy
+            ::memset(dat+l, 0, LOGREC_ALIGN_BYTE(l)-l);
+        }
+        unsigned int tmp = LOGREC_ALIGN_BYTE(l) + sizeof(baseLogHeader);
+        tmp = (tmp + 7) & unsigned(-8); // force 8-byte alignment
+        w_assert1(tmp <= sizeof(*this));
+        header._len = tmp;
+    }
 
     const char* data() const
     {
@@ -371,39 +402,5 @@ public:
         _size = 0;
     }
 };
-
-#define LOGREC_ALIGNON 0x8
-#define LOGREC_ALIGNON1 (LOGREC_ALIGNON-1)
-#define LOGREC_ALIGN_BYTE(sz) ((size_t)((sz + LOGREC_ALIGNON1) & ~LOGREC_ALIGNON1))
-
-void logrec_t::set_size(size_t l)
-{
-    char *dat = data();
-    if (l != LOGREC_ALIGN_BYTE(l)) {
-        // zero out extra space to keep purify happy
-        ::memset(dat+l, 0, LOGREC_ALIGN_BYTE(l)-l);
-    }
-    unsigned int tmp = LOGREC_ALIGN_BYTE(l) + sizeof(baseLogHeader);
-    tmp = (tmp + 7) & unsigned(-8); // force 8-byte alignment
-    w_assert1(tmp <= sizeof(*this));
-    header._len = tmp;
-}
-
-logrec_t::logrec_t(uint8_t type)
-{
-    header._type = type;
-    header._pid = 0;
-    header._page_version = 0;
-    set_size(0);
-}
-
-void logrec_t::init_header(uint8_t type, PageID pid)
-{
-    header._type = type;
-    header._pid = pid;
-    header._page_version = 0;
-    // CS TODO: for most logrecs, set_size is called twice
-    set_size(0);
-}
 
 #endif          /*</std-footer>*/

@@ -112,7 +112,7 @@ public:
 
     // Initialize flags table
     template <typename Iter>
-    static void initialize_flags(Iter begin, Iter end)
+    static void initialize(Iter begin, Iter end)
     {
         flags.fill(t_bad);
         auto it = begin;

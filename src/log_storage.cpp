@@ -42,7 +42,7 @@ public:
  * found in the last block of the last partition -- this logic was moved
  * from the various prime methods of the old LogManager.
  */
-log_storage::log_storage(const std::string& logdir, size_t partition_size, bool reformat, bool delete_old_partitions)
+log_storage::log_storage(const std::string& logdir, bool reformat, bool delete_old_partitions, size_t partition_size)
     : _curr_partition(nullptr)
 {
     if (logdir.empty()) {

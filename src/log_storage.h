@@ -80,7 +80,7 @@ class log_storage {
     friend class partition_recycler_t;
 
 public:
-    log_storage(const std::string& logdir, size_t partition_size = 1024, bool reformat = false, bool delete_old_partitions = true);
+    log_storage(const std::string& logdir, bool reformat = false, bool delete_old_partitions = true, size_t partition_size = 1024);
     virtual ~log_storage();
 
     std::shared_ptr<partition_t>    get_partition_for_flush(lsn_t start_lsn,

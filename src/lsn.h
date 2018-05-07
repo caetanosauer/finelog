@@ -176,8 +176,6 @@ typedef int64_t sm_diskaddr_t;
  */
 
 typedef uint64_t lsndata_t;
-const lsndata_t lsndata_null = 0;
-const lsndata_t lsndata_max = 0xFFFFFFFFFFFFFFFF;
 
 /**\brief Log Sequence Number. See \ref LSNS.
  *

@@ -25,9 +25,7 @@ void global_assert_failed(
     ::abort();
 }
 
-#ifdef W_TRACE
 debug_t _debug("debug", getenv("DEBUG_FILE"));
-#endif
 
 debug_t::debug_t(const char* /*n*/, const char* /*f*/)
 {

@@ -84,7 +84,7 @@ class flush_daemon_thread_t;
 class LogManager
 {
 public:
-    LogManager(const std::string& logidr);
+    LogManager(const std::string& logdir, bool reformat = false, bool delete_old_partitions = true, size_t partition_size = 1024);
     virtual           ~LogManager();
 
     void init();

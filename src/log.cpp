@@ -172,7 +172,7 @@ void LogManager::shutdown()
  *  from the last log file.
  *
  *********************************************************************/
-LogManager::LogManager(const std::string& logdir)
+LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old_partitions, size_t partition_size)
     :
       _start(0),
       _end(0),
@@ -195,8 +195,7 @@ LogManager::LogManager(const std::string& logdir)
 
     _buf = new char[_segsize];
 
-    // CS TODO: pass options
-    _storage = new log_storage(logdir);
+    _storage = new log_storage(logdir, reformat, delete_old_partitions, partition_size);
 
     auto curr_p = _storage->curr_partition();
     auto pnum = (curr_p ? curr_p->num() : 0) + 1;

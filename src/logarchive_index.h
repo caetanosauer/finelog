@@ -94,7 +94,7 @@ struct CmpOpenFiles {
  */
 class ArchiveIndex {
 public:
-    ArchiveIndex(const std::string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files);
+    ArchiveIndex(const std::string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files = 20);
     virtual ~ArchiveIndex();
 
     struct BlockEntry {

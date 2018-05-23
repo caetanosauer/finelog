@@ -2,7 +2,7 @@
 
 for f in *.cpp; do
     echo "Compiling $f"
-    g++ --std=c++14 -c $f
+    g++ --std=c++17 -c $f
     if [ $? -ne 0 ]; then
         echo "Compilation failed!"
         exit 1

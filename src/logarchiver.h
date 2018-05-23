@@ -6,7 +6,6 @@
 #include "logarchive_writer.h"
 #include "w_heap.h"
 #include "log_storage.h"
-#include "mem_mgmt.h"
 
 #include <queue>
 #include <set>
@@ -196,9 +195,9 @@ public:
 private:
     LogManager* log;
     std::shared_ptr<ArchiveIndex> index;
-    ArchiverHeapSimple* heap;
-    BlockAssembly* blkAssemb;
-    MergerDaemon* merger;
+    std::unique_ptr<ArchiverHeapSimple> heap;
+    std::unique_ptr<BlockAssembly> blkAssemb;
+    std::unique_ptr<MergerDaemon> merger;
 
     std::atomic<bool> shutdownFlag;
     lsn_t flushReqLSN;

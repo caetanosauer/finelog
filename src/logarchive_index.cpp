@@ -72,7 +72,6 @@ size_t ArchiveIndex::getFileSize(int fd)
 }
 
 ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files)
-    : logStorage(logStorage)
 {
     // CS TODO: direct IO still necessary?
     directIO = false;
@@ -722,6 +721,7 @@ void ArchiveIndex::dumpIndex(ostream& out)
             //         endl;
             //     prevOffset = offset;
             // }
+            (void) offset, (void) prevOffset;
         }
     }
 }

@@ -9,8 +9,6 @@
 
 using namespace std;
 
-typedef fixed_lists_mem_t::slot_t slot_t;
-
 const static int DFT_BLOCK_SIZE = 8 * 1024 * 1024;
 
 LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool format, bool merge)
@@ -18,14 +16,14 @@ LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool forma
 {
     w_assert0(log);
 
-    constexpr size_t defaultWorkspaceSize = 1600;
+    // constexpr size_t defaultWorkspaceSize = 1600;
     // size_t workspaceSize = 1024 * 1024 * // convert MB -> B
     //     options.get_int_option("sm_archiver_workspace_size", defaultWorkspaceSize);
     // size_t archBlockSize = options.get_int_option("sm_archiver_block_size", DFT_BLOCK_SIZE);
     // bool compression = options.get_int_option("sm_page_img_compression", 0) > 0;
 
     // CS TODO: bring options
-    size_t workspaceSize = 1024 * 1024 * defaultWorkspaceSize; // convert MB -> B
+    // size_t workspaceSize = 1024 * 1024 * defaultWorkspaceSize; // convert MB -> B
     size_t archBlockSize = DFT_BLOCK_SIZE;
     bool compression = false;
     size_t maxOpenFiles = 20;
@@ -43,14 +41,13 @@ LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool forma
         }
     }
 
-    heap = new ArchiverHeapSimple();
+    heap = make_unique<ArchiverHeapSimple>();
     // unsigned fsyncFrequency = options.get_bool_option("sm_arch_fsync_frequency", 1);
     unsigned fsyncFrequency = 1;
-    blkAssemb = new BlockAssembly(index.get(), archBlockSize, 1 /*level*/, compression, fsyncFrequency);
+    blkAssemb = make_unique<BlockAssembly>(index.get(), archBlockSize, 1 /*level*/, compression, fsyncFrequency);
 
-    merger = nullptr;
     if (merge) {
-        merger = new MergerDaemon(index);
+        merger = make_unique<MergerDaemon>(index);
         merger->fork();
         merger->wakeup();
     }

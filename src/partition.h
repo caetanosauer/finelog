@@ -103,7 +103,6 @@ private:
     bool _delete_after_close;
 
     size_t _max_partition_size;
-    char* _mmap_buffer;
 
     void             fsync_delayed(int fd);
 

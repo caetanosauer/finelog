@@ -643,6 +643,7 @@ void mcs_rwlock::_add_when_writer_leaves(int delta)
     // if(cnt  && (delta == WRITER)) {
     //     INC_TSTAT(rwlock_w_wait);
     // }
+    (void) cnt;
 }
 
 bool mcs_rwlock::attempt_read()

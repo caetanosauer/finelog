@@ -6,6 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <chrono>
 
 /**
  * Simple implementation of a circular IO buffer for the archiver reader,
@@ -57,7 +58,7 @@ public:
 
     ~AsyncRingBuffer()
     {
-        delete buf;
+        delete[] buf;
     }
 
 private:
@@ -86,9 +87,10 @@ private:
 
 inline char* AsyncRingBuffer::producerRequest()
 {
+    using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lck{mtx};
-    if (isFull()) {
-        cond.wait(lck, [this] { return finished || !isFull(); });
+    while (isFull() && !finished) {
+        cond.wait_for(lck, 100ms, [this] { return finished || !isFull(); });
     }
     if (finished) {
         return NULL;
@@ -109,9 +111,10 @@ inline void AsyncRingBuffer::producerRelease()
 
 inline char* AsyncRingBuffer::consumerRequest()
 {
+    using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lck{mtx};
-    if (isEmpty()) {
-        cond.wait(lck, [this] { return finished || !isEmpty(); });
+    while (isEmpty() && !finished) {
+        cond.wait_for(lck, 100ms, [this] { return finished || !isEmpty(); });
     }
     // Consumer doesn't finish until the queue is empty
     if (finished && !isEmpty()) {

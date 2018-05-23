@@ -8,7 +8,6 @@
 #include "logarchive_index.h"
 
 class ArchiveIndex;
-class RunFile;
 class logrec_t;
 
 struct alignas(32) MergeInput
@@ -74,7 +73,6 @@ void ArchiveScan::openForMerge(Iter begin, Iter end)
 
     for (Iter it = begin; it != end; it++) {
         MergeInput input;
-        auto runid = *it;
         input.pos = 0;
         input.runFile = archIndex->openForScan(*it);
         inputs.push_back(input);

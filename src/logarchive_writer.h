@@ -23,7 +23,7 @@ class logrec_t;
 class WriterThread : public thread_wrapper_t {
 private:
 
-    AsyncRingBuffer* buf;
+    std::shared_ptr<AsyncRingBuffer> buf;
     ArchiveIndex* index;
     unsigned fsyncFrequency;
     run_number_t currentRun;
@@ -45,7 +45,7 @@ public:
         maxPIDInRun = std::numeric_limits<PageID>::min();
     }
 
-    WriterThread(AsyncRingBuffer* writebuf, ArchiveIndex* index, unsigned level, unsigned fsyncFrequency)
+    WriterThread(std::shared_ptr<AsyncRingBuffer> writebuf, ArchiveIndex* index, unsigned level, unsigned fsyncFrequency)
         :
             buf(writebuf), index(index), fsyncFrequency(fsyncFrequency),
             currentRun(0), level(level),
@@ -107,8 +107,8 @@ public:
     static PageID getMaxPIDFromBlock(const char* b);
 private:
     char* dest;
-    AsyncRingBuffer* writebuf;
-    WriterThread* writer;
+    std::shared_ptr<AsyncRingBuffer> writebuf;
+    std::unique_ptr<WriterThread> writer;
     ArchiveIndex* archIndex;
     const size_t blockSize;
     size_t pos;
@@ -120,7 +120,6 @@ private:
     size_t currentPIDfpos;
     bool enableCompression;
 
-    PageID maxPIDInRun;
     std::vector<std::pair<PageID, size_t>> buckets;
 
     unsigned level;

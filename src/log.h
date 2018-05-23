@@ -58,23 +58,20 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #ifndef FINELOG_LOG_H
 #define FINELOG_LOG_H
 
-#include "AtomicCounter.hpp"
-#include <vector> // only for _collect_single_page_recovery_logs()
+#include <vector>
 #include <limits>
 #include <atomic>
 #include <unordered_map>
 
-// in sm_base for the purpose of log callback function argument type
-class      partition_t ; // forward
-
+class partition_t;
 class sm_options;
 class ConsolidationArray;
 struct CArraySlot;
 class PoorMansOldestLsnTracker;
-class plog_xct_t;
 class ticker_thread_t;
 class flush_daemon_thread_t;
 
+#include "AtomicCounter.hpp"
 #include "partition.h"
 #include "latches.h"
 #include "log_storage.h"
@@ -85,21 +82,20 @@ class LogManager
 {
 public:
     LogManager(const std::string& logdir, bool reformat = false, bool delete_old_partitions = true, size_t partition_size = 1024);
-    virtual           ~LogManager();
+    virtual ~LogManager();
 
     void init();
 
-    static const std::string IMPL_NAME;
-
-    void            insert(logrec_t &r, lsn_t* l = NULL);
+    void insert(logrec_t &r, lsn_t* l = NULL);
     void insert_raw(const char* src, size_t length, lsn_t* rlsn = nullptr);
-    void            flush(const lsn_t &lsn, bool block=true, bool signal=true, bool *ret_flushed=NULL);
-    void    flush_all(bool block=true) { return flush(curr_lsn().advance(-1), block); }
+    void flush(const lsn_t &lsn, bool block=true, bool signal=true, bool *ret_flushed=NULL);
+    void flush_all(bool block=true) { return flush(curr_lsn().advance(-1), block); }
 
+    // CS TODO: return const pointer
     logrec_t* fetch_direct(std::shared_ptr<partition_t> partition, lsn_t lsn);
 
-    void            shutdown();
-    void            truncate();
+    void shutdown();
+    void truncate();
 
     lsn_t curr_lsn() const { return _curr_lsn; }
 
@@ -107,11 +103,11 @@ public:
 
     void start_flush_daemon();
 
-    long                 segsize() const { return _segsize; }
+    long segsize() const { return _segsize; }
 
-    void            flush_daemon();
+    void flush_daemon();
 
-    lsn_t           flush_daemon_work(lsn_t old_mark);
+    lsn_t flush_daemon_work(lsn_t old_mark);
 
     // log buffer segment size = 128 MB
     enum { SEGMENT_SIZE = 16384 * log_storage::BLOCK_SIZE };
@@ -123,7 +119,7 @@ public:
     }
 
     log_storage* get_storage() { return _storage; }
-    PoorMansOldestLsnTracker* get_oldest_lsn_tracker() { return _oldest_lsn_tracker; }
+    // PoorMansOldestLsnTracker* get_oldest_lsn_tracker() { return _oldest_lsn_tracker; }
     EpochTracker<>& get_epoch_tracker() { return _epoch_tracker; }
     uint64_t get_log_file_epoch(uint16_t p)
     {
@@ -188,7 +184,7 @@ protected:
     /** @}*/
 
     log_storage*    _storage;
-    PoorMansOldestLsnTracker* _oldest_lsn_tracker;
+    // PoorMansOldestLsnTracker* _oldest_lsn_tracker;
     EpochTracker<> _epoch_tracker;
     std::unordered_map<uint16_t, uint64_t> _log_file_epochs;
 

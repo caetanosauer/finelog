@@ -338,7 +338,7 @@ struct TupleEncodingHelper
 
     template <typename... T>
     static typename std::enable_if<!(N < sizeof...(T)), size_t>::type
-    get_payload_length(void* ptr) // empty tuple
+    get_payload_length(void* /*ptr*/) // empty tuple
     {
         return 0;
     }

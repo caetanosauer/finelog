@@ -193,7 +193,6 @@ private:
     void serializeRunInfo(RunInfo&, int fd, off_t);
 
 private:
-    log_storage* logStorage;
     std::string archdir;
     std::vector<int> appendFd;
     std::vector<off_t> appendPos;
@@ -260,7 +259,7 @@ void ArchiveIndex::probe(std::vector<Input>& inputs,
             if (run.entries.size() > 0) {
                 size_t entryBegin = findEntry(&run, startPID);
 
-                if (run.entries[entryBegin].pid >= endPID) {
+                if ((run.entries[entryBegin].pid >= endPID) && (endPID > 0)) {
                     // INC_TSTAT(la_avoided_probes);
                     continue;
                 }

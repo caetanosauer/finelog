@@ -58,7 +58,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include "logrec.h"
 #include "log.h"
 #include "log_carray.h"
-#include "log_lsn_tracker.h"
 // CS TODO: fix XctLogger
 // #include "xct_logger.h"
 
@@ -101,6 +100,7 @@ public:
             // CS TODO: fix XctLogger
             // if (msec) { Logger::log_sys<tick_msec_log>(); }
             // else { Logger::log_sys<tick_sec_log>(); }
+            (void) msec;
         }
     }
 
@@ -203,7 +203,7 @@ LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old
     _curr_lsn = _durable_lsn = _flush_lsn = lsn_t(pnum, 0);
     cerr << "Initialized curr_lsn to " << _curr_lsn << endl;
 
-    _oldest_lsn_tracker = new PoorMansOldestLsnTracker(1 << 20);
+    // _oldest_lsn_tracker = new PoorMansOldestLsnTracker(1 << 20);
 
     /* FRJ: the new code assumes that the buffer is always aligned
        with some buffer-sized multiple of the partition, so we need to
@@ -273,7 +273,7 @@ LogManager::~LogManager()
     }
 
     delete _storage;
-    delete _oldest_lsn_tracker;
+    // delete _oldest_lsn_tracker;
 
     delete [] _buf;
     _buf = NULL;
@@ -867,7 +867,7 @@ void LogManager::flush_daemon()
 bool LogManager::_should_group_commit(long write_size)
 {
     // Do not flush if write size is less than group commit size
-    if (write_size < _group_commit_size) {
+    if (write_size < static_cast<long>(_group_commit_size)) {
         // Only supress flush if timeout hasn't expired
         if (_group_commit_timeout > 0 &&
                 _group_commit_timer.time_ms() > _group_commit_timeout)
@@ -1007,7 +1007,7 @@ lsn_t LogManager::flush_daemon_work(lsn_t old_mark)
     return end_lsn;
 }
 
-lsn_t LogManager::get_oldest_active_lsn()
-{
-    return _oldest_lsn_tracker->get_oldest_active_lsn(curr_lsn());
-}
+// lsn_t LogManager::get_oldest_active_lsn()
+// {
+//     return _oldest_lsn_tracker->get_oldest_active_lsn(curr_lsn());
+// }

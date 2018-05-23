@@ -60,6 +60,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #include <array>
 #include <limits>
 #include <cstring>
+#include <cstdlib>
+#include <ostream>
 
 #include "finelog_basics.h"
 #include "lsn.h"
@@ -78,15 +80,15 @@ struct alignas(LogrecAlignment) baseLogHeader
    bool is_valid() const;
 };
 
-static_assert(sizeof(baseLogHeader) == 16, "Wrong logrec header size");
+static_assert(sizeof(baseLogHeader) == LogrecAlignment, "Wrong logrec header size");
 
-class logrec_t final {
+class alignas(LogrecAlignment) logrec_t final {
 public:
     static constexpr size_t MaxLogrecSize = 3 * 8192;
     static constexpr size_t MaxDataSize = MaxLogrecSize - sizeof(baseLogHeader);
     static constexpr uint8_t MaxLogrecType = std::numeric_limits<uint8_t>::max();
 
-    friend class baseLogHeader;
+    friend struct baseLogHeader;
 
     using PageID = uint32_t;
     using StoreID = uint16_t;
@@ -105,7 +107,7 @@ public:
         /** invalid log record type */
         t_bad   = 0,
         /** System log record: not transaction- or page-related; no undo/redo */
-        t_system    = 1 << 0,
+        t_system    = 1,
         /** log with UNDO action? */
         t_undo      = 1 << 1,
         /** log with REDO action? */
@@ -130,17 +132,19 @@ public:
            flags[count++] = *it;
            it++;
         }
+        assert(count > 0);
         // Max is reserved for EOF
         flags[MaxLogrecType] = t_eof;
     }
 
-    void init_header(uint8_t type, PageID pid = 0)
+    void init_header(uint8_t type, PageID pid = 0, uint32_t version = 0)
     {
         header._type = type;
         header._pid = pid;
-        header._page_version = 0;
+        header._page_version = version;
         // CS TODO: for most logrecs, set_size is called twice
         set_size(0);
+        assert(valid_header());
     }
 
     void set_pid(PageID pid)
@@ -153,21 +157,13 @@ public:
         return header.is_valid();
     }
 
-#define LOGREC_ALIGNON 0x8
-#define LOGREC_ALIGNON1 (LOGREC_ALIGNON-1)
-#define LOGREC_ALIGN_BYTE(sz) ((size_t)((sz + LOGREC_ALIGNON1) & ~LOGREC_ALIGNON1))
 
-    void set_size(size_t l)
+    void set_size(size_t size)
     {
-        char *dat = data();
-        if (l != LOGREC_ALIGN_BYTE(l)) {
-            // zero out extra space to keep purify happy
-            ::memset(dat+l, 0, LOGREC_ALIGN_BYTE(l)-l);
-        }
-        unsigned int tmp = LOGREC_ALIGN_BYTE(l) + sizeof(baseLogHeader);
-        tmp = (tmp + 7) & unsigned(-8); // force 8-byte alignment
-        w_assert1(tmp <= sizeof(*this));
-        header._len = tmp;
+        // Make sure log record length is always aligned
+        constexpr auto bits = LogrecAlignment - 1;
+        auto aligned_size = (size + bits) & ~bits;
+        header._len = aligned_size + sizeof(baseLogHeader);
     }
 
     const char* data() const
@@ -245,8 +241,9 @@ private:
     baseLogHeader header;
     char _data[MaxDataSize];
 
-    // Mapping table of log record types to their flags
-    static std::array<uint8_t, sizeof(uint8_t)> flags;
+    // Mapping table of log record types to their flags (one entry for each possible byte value)
+    using FlagTable = std::array<uint8_t, std::numeric_limits<uint8_t>::max() + 1>;
+    static FlagTable flags;
 };
 
 inline bool baseLogHeader::is_valid() const
@@ -338,13 +335,16 @@ public:
     {
         if (i < _count) { return _entries[i].type; }
         w_assert0(false);
+        return 0;
     }
 };
 
-class RedoBuffer
+template <size_t BufferSize>
+class alignas(LogrecAlignment) RedoBuffer
 {
-    static constexpr size_t BufferSize = 1024 * 1024;
-    std::array<char, BufferSize> _buffer;
+   // TODO: using heap allocation to circumvent TLS limits wiht large DataGen transactions
+    // using BufferType = std::array<char, BufferSize>;
+    char* _buffer;
     size_t _size;
     uint64_t _epoch;
 
@@ -352,6 +352,12 @@ public:
     RedoBuffer()
         : _size(0), _epoch(0)
     {
+       _buffer = reinterpret_cast<char*>(std::aligned_alloc(LogrecAlignment, BufferSize));
+    }
+
+    ~RedoBuffer()
+    {
+       std::free(_buffer);
     }
 
     uint64_t get_epoch() const { return _epoch; }

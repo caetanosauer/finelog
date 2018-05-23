@@ -11,12 +11,12 @@ const static int IO_BLOCK_COUNT = 8;
 
 BlockAssembly::BlockAssembly(ArchiveIndex* index, size_t blockSize, unsigned level, bool compression,
         unsigned fsyncFrequency)
-    : dest(nullptr), lastRun(0), currentPID(0), blockSize(blockSize), level(level), enableCompression(compression),
+    : dest(nullptr), blockSize(blockSize), lastRun(0), currentPID(0), enableCompression(compression), level(level),
     maxPID(numeric_limits<PageID>::min())
 {
     archIndex = index;
-    writebuf = new AsyncRingBuffer(blockSize, IO_BLOCK_COUNT);
-    writer = new WriterThread(writebuf, index, level, fsyncFrequency);
+    writebuf = make_shared<AsyncRingBuffer>(blockSize, IO_BLOCK_COUNT);
+    writer = make_unique<WriterThread>(writebuf, index, level, fsyncFrequency);
     writer->fork();
 
     index->openNewRun(level);
@@ -27,8 +27,6 @@ BlockAssembly::~BlockAssembly()
     if (!writebuf->isFinished()) {
         shutdown();
     }
-    delete writer;
-    delete writebuf;
 }
 
 bool BlockAssembly::hasPendingBlocks()
@@ -183,7 +181,7 @@ void WriterThread::run()
              * that all pending blocks are written out before shutdown.
              */
             DBGTHRD(<< "Finished flag set on writer thread");
-            index->closeCurrentRun(currentRun, level, maxPIDInRun);
+            // index->closeCurrentRun(currentRun, level, maxPIDInRun);
             return; // finished is set on buf
         }
 

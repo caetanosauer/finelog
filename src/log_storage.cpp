@@ -180,7 +180,7 @@ unsigned log_storage::delete_old_partitions(partition_number_t older_than)
     if (older_than == 0) {
         // CS TODO: this must be abstracted in finelog, since there is no bf!
         // older_than = smlevel_0::bf->get_archived_run();
-        w_assert0(false);
+       return 0;
     }
 
     unsigned count = 0;

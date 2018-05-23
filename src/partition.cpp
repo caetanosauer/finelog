@@ -69,11 +69,12 @@ using namespace std;
 
 partition_t::partition_t(log_storage *owner, partition_number_t num)
     : _num(num), _owner(owner),
-      _fhdl(invalid_fhdl), _skip_logrec{logrec_t::get_eof_logrec().type()}, _delete_after_close(false)
+      _fhdl(invalid_fhdl), _delete_after_close(false), _skip_logrec{logrec_t::get_eof_logrec().type()}
 {
     // Add space for skip log record
     _max_partition_size = owner->get_partition_size() + sizeof(baseLogHeader);
     _readbuf = nullptr;
+    assert(_skip_logrec.valid_header());
 }
 
 long floor2(long offset, long block_size)

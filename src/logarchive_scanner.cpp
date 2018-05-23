@@ -5,11 +5,6 @@
 #include "stopwatch.h"
 #include "log_consumer.h" // for LogScanner
 
-// CS TODO: Aligning with the Linux standard FS block size
-// We could try using 512 (typical hard drive sector) at some point,
-// but none of this is actually standardized or portable
-const size_t IO_ALIGN = 512;
-
 thread_local std::vector<MergeInput> ArchiveScan::_mergeInputVector;
 
 bool mergeInputCmpGt(const MergeInput& a, const MergeInput& b)

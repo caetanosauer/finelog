@@ -47,9 +47,9 @@ PoorMansOldestLsnTracker::PoorMansOldestLsnTracker(uint32_t buckets) {
     b -= 6;
     _buckets = primes[b];
 
-    _low_water_marks = new lsndata_t[_buckets];
+    _low_water_marks = new lsn_t[_buckets];
     w_assert1(_low_water_marks);
-    ::memset(_low_water_marks, 0, sizeof(lsndata_t) * _buckets);
+    ::memset(_low_water_marks, 0, sizeof(lsn_t) * _buckets);
 }
 PoorMansOldestLsnTracker::~PoorMansOldestLsnTracker() {
 #if W_DEBUG_LEVEL > 0
@@ -64,14 +64,14 @@ PoorMansOldestLsnTracker::~PoorMansOldestLsnTracker() {
 }
 
 void PoorMansOldestLsnTracker::enter(uint64_t xct_id, const lsn_t& curr_lsn) {
-    lsndata_t data = curr_lsn.data();
-    lsndata_t cas_tmp = 0;
+    lsn_t data = curr_lsn.data();
+    lsn_t cas_tmp = 0;
     uint32_t index = xct_id % _buckets;
     DBGOUT4(<<"PoorMansOldestLsnTracker::enter. xct_id=" << xct_id
         << ", index=" << index <<", data=" << data);
-    lsndata_t *address = _low_water_marks + index;
+    lsn_t *address = _low_water_marks + index;
     int counter = 0;
-    while (!lintel::unsafe::atomic_compare_exchange_strong<lsndata_t>(
+    while (!lintel::unsafe::atomic_compare_exchange_strong<lsn_t>(
         address, &cas_tmp, data)) {
         cas_tmp = 0;
         ++counter;
@@ -93,12 +93,12 @@ void PoorMansOldestLsnTracker::leave(uint64_t xct_id) {
 
 
 lsn_t PoorMansOldestLsnTracker::get_oldest_active_lsn(lsn_t curr_lsn) {
-    lsndata_t smallest = lsndata_max;
+    lsn_t smallest = lsn_t::max;
     for (uint32_t i = 0; i < _buckets; ++i) {
         if (_low_water_marks[i] != 0 && _low_water_marks[i] < smallest) {
             smallest = _low_water_marks[i];
         }
     }
-    _cache = lsn_t(smallest == lsndata_max ? curr_lsn.data() : smallest);
+    _cache = lsn_t(smallest == lsn_t::max ? curr_lsn.data() : smallest);
     return _cache;
 }

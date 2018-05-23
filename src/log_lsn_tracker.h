@@ -52,7 +52,7 @@ public:
     lsn_t               get_oldest_active_lsn_cache() const { return _cache; }
 private:
     uint32_t            _buckets;
-    lsndata_t*          _low_water_marks;
+    lsn_t*          _low_water_marks;
     lsn_t               _cache;
 };
 

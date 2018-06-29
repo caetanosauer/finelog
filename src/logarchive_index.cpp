@@ -41,7 +41,7 @@ const string ArchiveIndex::current_regex = "^current_run_[1-9][0-9]*$";
 
 struct RunFooter {
     uint64_t index_begin;
-    uint64_t index_size;
+    uint64_t entryCount;
     PageID maxPID;
 };
 
@@ -451,12 +451,11 @@ void ArchiveIndex::newBlock(const vector<pair<PageID, size_t> >&
 
     size_t prevOffset = 0;
     for (size_t i = 0; i < buckets.size(); i++) {
-        BlockEntry e;
-        e.pid = buckets[i].first;
-        e.offset = buckets[i].second;
-        w_assert1(e.offset == 0 || e.offset > prevOffset);
-        prevOffset = e.offset;
-        runs[level].back().entries.push_back(e);
+        auto pid = buckets[i].first;
+        auto offset = buckets[i].second;
+        w_assert1(offset == 0 || offset > prevOffset);
+        prevOffset = offset;
+        runs[level].back().addEntry(pid, offset);
     }
 }
 
@@ -491,13 +490,17 @@ void ArchiveIndex::finishRun(run_number_t begin, run_number_t end,
 void ArchiveIndex::serializeRunInfo(RunInfo& run, int fd, off_t offset)
 {
     spinlock_read_critical_section cs(&_mutex);
-    // Write whole vector at once
-    auto index_size = sizeof(BlockEntry) * run.entries.size();
-    auto ret = ::pwrite(fd, &run.entries[0], index_size, offset);
+    // Write whole vectors
+    w_assert0(run.pids.size() == run.offsets.size());
+    unsigned entryCount = run.pids.size();
+    auto pids_size = sizeof(PageID) * entryCount;
+    auto offsets_size = sizeof(uint64_t) * entryCount;
+    auto ret = ::pwrite(fd, &run.pids[0], pids_size, offset);
     CHECK_ERRNO(ret);
+    ret = ::pwrite(fd, &run.offsets[0], offsets_size, offset + pids_size);
     // Write run footer
-    RunFooter footer {static_cast<uint64_t>(offset), index_size, run.maxPID};
-    ret = ::pwrite(fd, &footer, sizeof(RunFooter), offset + index_size);
+    RunFooter footer {static_cast<uint64_t>(offset), entryCount, run.maxPID};
+    ret = ::pwrite(fd, &footer, sizeof(RunFooter), offset + pids_size + offsets_size);
 }
 
 void ArchiveIndex::appendNewRun(unsigned level)
@@ -571,16 +574,15 @@ void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
         run.maxPID = footer.maxPID;
         // Get offset of first index entry
         w_assert0(runFile->length > footer.index_begin);
-        w_assert0(runFile->length > sizeof(RunFooter) + footer.index_size);
+        // w_assert0(runFile->length > sizeof(RunFooter) + footer.index_size);
         off_t index_offset = footer.index_begin;
-        // Initialize entry array with read size
-        w_assert0(footer.index_size % sizeof(BlockEntry) == 0);
-        run.entries.resize(footer.index_size / sizeof(BlockEntry));
         // Copy entries into initialized vector
-        BlockEntry* entry = reinterpret_cast<BlockEntry*>(runFile->getOffset(index_offset));
-        for (size_t i = 0; i < run.entries.size(); i++) {
-            run.entries[i] = *entry;
-            entry++;
+        PageID* pages = reinterpret_cast<PageID*>(runFile->getOffset(index_offset));
+        uint64_t* offsets = reinterpret_cast<uint64_t*>(runFile->getOffset(index_offset + (footer.entryCount * sizeof(PageID))));
+        for (size_t i = 0; i < footer.entryCount; i++) {
+            run.addEntry(*pages, *offsets);
+            pages++;
+            offsets++;
         }
         // Assert that skip log record is right before the index
         off_t skip_offset = index_offset - logrec_t::get_eof_logrec().length();
@@ -625,7 +627,7 @@ size_t ArchiveIndex::findRun(run_number_t run, unsigned level)
     }
 
     // skip empty runs
-    while (runs[level][result].entries.size() == 0 && result < lf) {
+    while (runs[level][result].pids.size() == 0 && result < lf) {
         result++;
     }
 
@@ -651,11 +653,11 @@ size_t ArchiveIndex::findEntry(RunInfo* run,
     }
 
     // negative value indicates first invocation
-    if (to < 0) { to = run->entries.size() - 1; }
+    if (to < 0) { to = run->pids.size() - 1; }
     if (from < 0) { from = 0; }
 
     w_assert1(run);
-    w_assert1(run->entries.size() > 0);
+    w_assert1(run->pids.size() > 0);
 
     // binary search for page ID within run
     size_t i;
@@ -666,7 +668,7 @@ size_t ArchiveIndex::findEntry(RunInfo* run,
         i = from/2 + to/2;
     }
 
-    w_assert0(i < run->entries.size());
+    w_assert0(i < run->pids.size());
 
     /* The if below is for the old index organization that used pages (as in a
      * normal B-tree) rather than buckets. In that case, we have found the pid
@@ -686,15 +688,15 @@ size_t ArchiveIndex::findEntry(RunInfo* run,
     //     return i;
     // }
 
-    if (run->entries[i].pid <= pid &&
-            (i == run->entries.size() - 1 || run->entries[i+1].pid > pid))
+    if (run->pids[i]<= pid &&
+            (i == run->pids.size() - 1 || run->pids[i+1] > pid))
     {
         // found it! -- previous cannot contain the same pid in bucket organization
         return i;
     }
 
     // not found: recurse down
-    if (run->entries[i].pid > pid) {
+    if (run->pids[i] > pid) {
         return findEntry(run, pid, from, i-1);
     }
     else {
@@ -731,12 +733,12 @@ void ArchiveIndex::dumpIndex(ostream& out, const RunId& runid)
     size_t offset = 0, prevOffset = 0;
     auto index = findRun(runid.begin, runid.level);
     auto& run = runs[runid.level][index];
-    for (size_t j = 0; j < run.entries.size(); j++) {
-        offset = run.entries[j].offset;
+    for (size_t j = 0; j < run.pids.size(); j++) {
+        offset = run.getOffset(j);
         out << "level " << runid.level
             << " run " << index
             << " entry " << j <<
-            " pid " << run.entries[j].pid <<
+            " pid " << run.pids[j] <<
             " offset " << offset <<
             " delta " << offset - prevOffset <<
             endl;

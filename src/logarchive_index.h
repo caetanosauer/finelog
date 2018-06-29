@@ -97,23 +97,31 @@ public:
     ArchiveIndex(const std::string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files = 20);
     virtual ~ArchiveIndex();
 
-    struct BlockEntry {
-        size_t offset;
-        PageID pid;
-    };
-
     struct RunInfo {
         run_number_t begin;
         run_number_t end;
 
         // Used as a filter to avoid unneccessary probes on older runs
+        // TODO: still necessary with vector of pids?
         PageID maxPID;
 
-        std::vector<BlockEntry> entries;
+        std::vector<PageID> pids;
+        std::vector<uint64_t> offsets;
 
         bool operator<(const RunInfo& other) const
         {
             return begin < other.begin;
+        }
+
+        void addEntry(PageID pid, uint64_t offset)
+        {
+            pids.push_back(pid);
+            offsets.push_back(offset);
+        }
+
+        uint64_t getOffset(int i)
+        {
+            return offsets[i];
         }
     };
 
@@ -256,15 +264,15 @@ void ArchiveIndex::probe(std::vector<Input>& inputs,
                 continue;
             }
 
-            if (run.entries.size() > 0) {
+            if (run.pids.size() > 0) {
                 size_t entryBegin = findEntry(&run, startPID);
 
-                if ((run.entries[entryBegin].pid >= endPID) && (endPID > 0)) {
+                if ((run.pids[entryBegin] >= endPID) && (endPID > 0)) {
                     // INC_TSTAT(la_avoided_probes);
                     continue;
                 }
 
-                input.pos = run.entries[entryBegin].offset;
+                input.pos = run.getOffset(entryBegin);
                 input.runFile =
                     openForScan(RunId{run.begin, run.end, level});
                 w_assert1(input.pos < input.runFile->length);

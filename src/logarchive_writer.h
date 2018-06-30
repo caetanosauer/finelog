@@ -9,6 +9,7 @@
 
 class AsyncRingBuffer;
 class ArchiveIndex;
+class BucketInfo;
 class logrec_t;
 
 /** \brief Asynchronous writer thread to produce run files on disk
@@ -120,7 +121,8 @@ private:
     size_t currentPIDfpos;
     bool enableCompression;
 
-    std::vector<std::pair<PageID, size_t>> buckets;
+    PageID maxPIDInRun;
+    std::vector<BucketInfo> buckets;
 
     unsigned level;
     PageID maxPID;

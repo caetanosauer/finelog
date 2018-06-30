@@ -29,8 +29,7 @@ struct RunId {
 };
 
 // Controls access to a single run file through mmap
-struct RunFile
-{
+struct RunFile {
     RunId runid;
     int fd;
     int refcount;
@@ -42,6 +41,13 @@ struct RunFile
     }
 
     char* getOffset(off_t offset) const { return data + offset; }
+};
+
+// Temporary structure used to add blocks from BlockAssembly into the ArchiveIndex
+struct BucketInfo {
+    PageID pid;
+    uint64_t offset;
+    bool hasPageImage;
 };
 
 namespace std
@@ -97,7 +103,8 @@ public:
     ArchiveIndex(const std::string& archdir, log_storage* logStorage, bool reformat, size_t max_open_files = 20);
     virtual ~ArchiveIndex();
 
-    struct RunInfo {
+    class RunInfo {
+    public:
         run_number_t begin;
         run_number_t end;
 
@@ -106,23 +113,34 @@ public:
         PageID maxPID;
 
         std::vector<PageID> pids;
-        std::vector<uint64_t> offsets;
 
         bool operator<(const RunInfo& other) const
         {
             return begin < other.begin;
         }
 
-        void addEntry(PageID pid, uint64_t offset)
+        // Set offset as given, without masking (used by loadRunInfo)
+        void addRawEntry(PageID pid, uint64_t rawOffset)
         {
             pids.push_back(pid);
-            offsets.push_back(offset);
+            offsets.push_back(rawOffset);
+        }
+
+        void addEntry(PageID pid, uint64_t offset, bool hasImage)
+        {
+            addRawEntry(pid, offset | (hasImage ? Mask : 0));
         }
 
         uint64_t getOffset(int i)
         {
-            return offsets[i];
+            return offsets[i] & ~Mask;
         }
+
+        void serialize(int fd, off_t offset);
+
+    private:
+        std::vector<uint64_t> offsets;
+        static constexpr uint64_t Mask = ~(~0ul >> 1); // most significant bit set to 1
     };
 
     std::string getArchDir() const { return archdir; }
@@ -148,7 +166,7 @@ public:
     static bool parseRunFileName(std::string fname, RunId& fstats);
     static size_t getFileSize(int fd);
 
-    void newBlock(const std::vector<std::pair<PageID, size_t> >& buckets, unsigned level);
+    void newBlock(const std::vector<BucketInfo>& buckets, unsigned level);
 
     void finishRun(run_number_t first, run_number_t last, PageID maxPID,
             int fd, off_t offset, unsigned level);

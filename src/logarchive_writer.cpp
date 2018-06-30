@@ -100,21 +100,25 @@ bool BlockAssembly::add(logrec_t* lr)
         else { return false; }
     }
 
-    // New PID coming in: reset current PID stuff and check if it's time to add new bucket
+    // New PID coming in: reset current PID stuff and add new bucket
     if (lr->pid() != currentPID) {
         currentPID = lr->pid();
         currentPIDpos = pos;
         currentPIDfpos = fpos;
-        buckets.emplace_back(currentPID, fpos);
+        buckets.push_back({currentPID, fpos, false /*hasPageImage*/});
         if (currentPID > maxPID) { maxPID = currentPID; }
     }
 
-    if (enableCompression && lr->has_page_img()) {
-        // Keep track of compression efficicency
-        // ADD_TSTAT(la_img_compressed_bytes, pos - currentPIDpos);
-        //  Simply discard all log records produced for the current PID do far
-        pos = currentPIDpos;
-        fpos = currentPIDfpos;
+    if (lr->has_page_img()) {
+        // Set boolean on current bucket
+        buckets.back().hasPageImage = true;
+        if (enableCompression) {
+            // Keep track of compression efficicency
+            // ADD_TSTAT(la_img_compressed_bytes, pos - currentPIDpos);
+            //  Simply discard all log records produced for the current PID do far
+            pos = currentPIDpos;
+            fpos = currentPIDfpos;
+        }
     }
     w_assert1(pos > 0 || fpos % blockSize == 0);
 

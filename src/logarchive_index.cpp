@@ -444,18 +444,21 @@ void ArchiveIndex::deleteRuns(unsigned replicationFactor)
     }
 }
 
-void ArchiveIndex::newBlock(const vector<pair<PageID, size_t> >&
-        buckets, unsigned level)
+void ArchiveIndex::newBlock(const vector<BucketInfo>& buckets, unsigned level)
 {
     spinlock_write_critical_section cs(&_mutex);
 
+    // TODO can't BlockAssembly call addEntry directly somehow? This design is
+    // from when we had a block-based archive, but it shouldn't be necessary
+    // with mmap anymore.
     size_t prevOffset = 0;
     for (size_t i = 0; i < buckets.size(); i++) {
-        auto pid = buckets[i].first;
-        auto offset = buckets[i].second;
+        auto pid = buckets[i].pid;
+        auto offset = buckets[i].offset;
+        auto hasImage = buckets[i].hasPageImage;
         w_assert1(offset == 0 || offset > prevOffset);
         prevOffset = offset;
-        runs[level].back().addEntry(pid, offset);
+        runs[level].back().addEntry(pid, offset, hasImage);
     }
 }
 
@@ -487,20 +490,25 @@ void ArchiveIndex::finishRun(run_number_t begin, run_number_t end,
     if (level > 1 && runRecycler) { runRecycler->wakeup(); }
 }
 
+void ArchiveIndex::RunInfo::serialize(int fd, off_t offset)
+{
+    // Write whole vectors
+    w_assert0(pids.size() == offsets.size());
+    unsigned entryCount = pids.size();
+    auto pids_size = sizeof(PageID) * entryCount;
+    auto offsets_size = sizeof(uint64_t) * entryCount;
+    auto ret = ::pwrite(fd, &pids[0], pids_size, offset);
+    CHECK_ERRNO(ret);
+    ret = ::pwrite(fd, &offsets[0], offsets_size, offset + pids_size);
+    // Write run footer
+    RunFooter footer {static_cast<uint64_t>(offset), entryCount, maxPID};
+    ret = ::pwrite(fd, &footer, sizeof(RunFooter), offset + pids_size + offsets_size);
+}
+
 void ArchiveIndex::serializeRunInfo(RunInfo& run, int fd, off_t offset)
 {
     spinlock_read_critical_section cs(&_mutex);
-    // Write whole vectors
-    w_assert0(run.pids.size() == run.offsets.size());
-    unsigned entryCount = run.pids.size();
-    auto pids_size = sizeof(PageID) * entryCount;
-    auto offsets_size = sizeof(uint64_t) * entryCount;
-    auto ret = ::pwrite(fd, &run.pids[0], pids_size, offset);
-    CHECK_ERRNO(ret);
-    ret = ::pwrite(fd, &run.offsets[0], offsets_size, offset + pids_size);
-    // Write run footer
-    RunFooter footer {static_cast<uint64_t>(offset), entryCount, run.maxPID};
-    ret = ::pwrite(fd, &footer, sizeof(RunFooter), offset + pids_size + offsets_size);
+    run.serialize(fd, offset);
 }
 
 void ArchiveIndex::appendNewRun(unsigned level)
@@ -580,7 +588,7 @@ void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
         PageID* pages = reinterpret_cast<PageID*>(runFile->getOffset(index_offset));
         uint64_t* offsets = reinterpret_cast<uint64_t*>(runFile->getOffset(index_offset + (footer.entryCount * sizeof(PageID))));
         for (size_t i = 0; i < footer.entryCount; i++) {
-            run.addEntry(*pages, *offsets);
+            run.addRawEntry(*pages, *offsets);
             pages++;
             offsets++;
         }

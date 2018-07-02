@@ -352,7 +352,10 @@ public:
     RedoBuffer()
         : _size(0), _epoch(0)
     {
-       _buffer = reinterpret_cast<char*>(std::aligned_alloc(LogrecAlignment, BufferSize));
+       // TODO aligned_alloc not working on my mac -- leaving posix_memalign for now
+       // _buffer = reinterpret_cast<char*>(std::aligned_alloc(LogrecAlignment, BufferSize));
+       auto res = posix_memalign(&_buffer, LogrecAlignment, BufferSize);
+       w_assert0(res == 0);
     }
 
     ~RedoBuffer()

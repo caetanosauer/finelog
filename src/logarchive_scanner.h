@@ -79,6 +79,8 @@ void ArchiveScan::openForMerge(Iter begin, Iter end)
     }
 
     heapBegin = inputs.begin();
+
+    // Iterate backwards to remove empty inputs and compute pids that can be ignored on each run
     auto it = inputs.rbegin();
     while (it != inputs.rend())
     {

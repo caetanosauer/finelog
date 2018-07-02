@@ -28,10 +28,10 @@ void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin,
 
     archIndex->probe(inputs, startPID, endPID, runBegin, runEnd);
     lastProbedRun = runEnd;
-
     singlePage = (endPID == startPID+1);
-
     heapBegin = inputs.begin();
+
+    // Iterate over inputs in reverse order in order to prune them if a page-image logrec is found
     auto it = inputs.rbegin();
     while (it != inputs.rend())
     {

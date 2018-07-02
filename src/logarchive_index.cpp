@@ -42,7 +42,6 @@ const string ArchiveIndex::current_regex = "^current_run_[1-9][0-9]*$";
 struct RunFooter {
     uint64_t index_begin;
     uint64_t entryCount;
-    PageID maxPID;
 };
 
 bool ArchiveIndex::parseRunFileName(string fname, RunId& fstats)
@@ -239,7 +238,7 @@ fs::path ArchiveIndex::make_current_run_path(unsigned level) const
     return archpath / fs::path(CURR_RUN_PREFIX + std::to_string(level));
 }
 
-void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, PageID maxPID)
+void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
 {
     run_number_t lastRun = 0;
     if (level == 1) {
@@ -261,7 +260,7 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level, Page
                 }
             }
 
-            finishRun(lastRun+1, currentRun, maxPID, appendFd[level], appendPos[level], level);
+            finishRun(lastRun+1, currentRun, appendFd[level], appendPos[level], level);
             fs::path new_path = make_run_path(lastRun+1, currentRun, level);
             fs::rename(make_current_run_path(level), new_path);
 
@@ -462,8 +461,7 @@ void ArchiveIndex::newBlock(const vector<BucketInfo>& buckets, unsigned level)
     }
 }
 
-void ArchiveIndex::finishRun(run_number_t begin, run_number_t end,
-        PageID maxPID, int fd, off_t offset, unsigned level)
+void ArchiveIndex::finishRun(run_number_t begin, run_number_t end, int fd, off_t offset, unsigned level)
 {
     int lf;
     {
@@ -480,7 +478,6 @@ void ArchiveIndex::finishRun(run_number_t begin, run_number_t end,
 
         runs[level][lf].begin = begin;
         runs[level][lf].end = end;
-        runs[level][lf].maxPID = maxPID;
     }
 
     if (offset > 0 && lf < (int) runs[level].size()) {
@@ -501,7 +498,7 @@ void ArchiveIndex::RunInfo::serialize(int fd, off_t offset)
     CHECK_ERRNO(ret);
     ret = ::pwrite(fd, &offsets[0], offsets_size, offset + pids_size);
     // Write run footer
-    RunFooter footer {static_cast<uint64_t>(offset), entryCount, maxPID};
+    RunFooter footer {static_cast<uint64_t>(offset), entryCount};
     ret = ::pwrite(fd, &footer, sizeof(RunFooter), offset + pids_size + offsets_size);
 }
 
@@ -579,7 +576,6 @@ void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
         w_assert0(runFile->length > sizeof(RunFooter));
         off_t footer_offset = runFile->length - sizeof(RunFooter);
         RunFooter footer = *(reinterpret_cast<RunFooter*>(runFile->getOffset(footer_offset)));
-        run.maxPID = footer.maxPID;
         // Get offset of first index entry
         w_assert0(runFile->length > footer.index_begin);
         // w_assert0(runFile->length > sizeof(RunFooter) + footer.index_size);
@@ -653,11 +649,8 @@ size_t ArchiveIndex::findEntry(RunInfo* run,
             // Queried pid lower than first in run
             return 0;
         }
-        // Queried pid is greater than last in run.  This should not happen
-        // because probes must not consider this run if that's the case
-        std::stringstream ss;
-        ss << "Invalid probe on archiver index! " << " PID = " << pid << " run = " << run->begin;
-        throw std::runtime_error(ss.str());
+        // Queried pid is greater than last in run
+        return run->pids.size();
     }
 
     // negative value indicates first invocation
@@ -719,8 +712,7 @@ void ArchiveIndex::dumpIndex(ostream& out)
             size_t offset = 0, prevOffset = 0;
             auto& run = runs[l][i];
             out << "NEW_RUN level: " << l << " begin: " << run.begin
-                << " end: " << run.end << " maxPID: " << run.maxPID
-                << endl;
+                << " end: " << run.end << endl;
             // for (size_t j = 0; j < run.entries.size(); j++) {
             //     offset = run.entries[j].offset;
             //     out << "level " << l << " run " << i

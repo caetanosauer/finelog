@@ -266,8 +266,7 @@ void LogArchiver::run()
             }
 
             // Forcibly close current run to guarantee that LSN is persisted
-            PageID maxPID = blkAssemb->getCurrentMaxPID();
-            index->closeCurrentRun(flushReqLSN.hi(), 1 /* level */, maxPID);
+            index->closeCurrentRun(flushReqLSN.hi(), 1 /* level */);
             // blkAssemb->resetWriter();
 
             // CS FINELINE TODO: must guarantee that flushReqLSN.hi() will not

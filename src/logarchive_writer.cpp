@@ -11,8 +11,7 @@ const static int IO_BLOCK_COUNT = 8;
 
 BlockAssembly::BlockAssembly(ArchiveIndex* index, size_t blockSize, unsigned level, bool compression,
         unsigned fsyncFrequency)
-    : dest(nullptr), blockSize(blockSize), lastRun(0), currentPID(0), enableCompression(compression), level(level),
-    maxPID(numeric_limits<PageID>::min())
+    : dest(nullptr), blockSize(blockSize), lastRun(0), currentPID(0), enableCompression(compression), level(level)
 {
     archIndex = index;
     writebuf = make_shared<AsyncRingBuffer>(blockSize, IO_BLOCK_COUNT);
@@ -38,12 +37,6 @@ run_number_t BlockAssembly::getRunFromBlock(const char* b)
 {
     BlockHeader* h = (BlockHeader*) b;
     return h->run;
-}
-
-PageID BlockAssembly::getMaxPIDFromBlock(const char* b)
-{
-    BlockHeader* h = (BlockHeader*) b;
-    return h->maxPID;
 }
 
 size_t BlockAssembly::getEndOfBlock(const char* b)
@@ -75,7 +68,6 @@ bool BlockAssembly::start(run_number_t run)
     pos = sizeof(BlockHeader);
     currentPIDpos = pos;
     currentPIDfpos = fpos;
-    maxPID = numeric_limits<PageID>::min();
     buckets.clear();
 
     return true;
@@ -106,7 +98,6 @@ bool BlockAssembly::add(logrec_t* lr)
         currentPIDpos = pos;
         currentPIDfpos = fpos;
         buckets.push_back({currentPID, fpos, false /*hasPageImage*/});
-        if (currentPID > maxPID) { maxPID = currentPID; }
     }
 
     if (lr->has_page_img()) {
@@ -142,7 +133,6 @@ void BlockAssembly::finish()
     BlockHeader* h = (BlockHeader*) dest;
     h->run = lastRun;
     h->end = pos;
-    h->maxPID = maxPID;
 
     // does not apply in FINELINE
 // #if W_DEBUG_LEVEL>=3
@@ -185,7 +175,7 @@ void WriterThread::run()
              * that all pending blocks are written out before shutdown.
              */
             DBGTHRD(<< "Finished flag set on writer thread");
-            // index->closeCurrentRun(currentRun, level, maxPIDInRun);
+            // index->closeCurrentRun(currentRun, level);
             return; // finished is set on buf
         }
 
@@ -209,13 +199,10 @@ void WriterThread::run()
              *  bound on the next run, which allows us to verify whether
              *  holes exist in the archive.
              */
-            index->closeCurrentRun(currentRun, level, maxPIDInRun);
+            index->closeCurrentRun(currentRun, level);
             DBGTHRD(<< "Opening file for new run " << run);
             currentRun = run;
         }
-
-        PageID maxPID = BlockAssembly::getMaxPIDFromBlock(src);
-        if (maxPID > maxPIDInRun) { maxPIDInRun = maxPID; }
 
         size_t blockEnd = BlockAssembly::getEndOfBlock(src);
         size_t actualBlockSize= blockEnd - sizeof(BlockAssembly::BlockHeader);

@@ -29,7 +29,6 @@ private:
     unsigned fsyncFrequency;
     run_number_t currentRun;
     unsigned level;
-    PageID maxPIDInRun;
     unsigned appendBlockCount;
 
 public:
@@ -43,14 +42,13 @@ public:
     void resetCurrentRun()
     {
         currentRun++;
-        maxPIDInRun = std::numeric_limits<PageID>::min();
     }
 
     WriterThread(std::shared_ptr<AsyncRingBuffer> writebuf, ArchiveIndex* index, unsigned level, unsigned fsyncFrequency)
         :
             buf(writebuf), index(index), fsyncFrequency(fsyncFrequency),
             currentRun(0), level(level),
-            maxPIDInRun(std::numeric_limits<PageID>::min()), appendBlockCount(0)
+            appendBlockCount(0)
     {
     }
 
@@ -100,7 +98,6 @@ public:
 
     void resetWriter() { writer->resetCurrentRun(); }
     size_t getBlockSize() { return blockSize; }
-    PageID getCurrentMaxPID() { return maxPID; }
 
     // methods that abstract block metadata
     static run_number_t getRunFromBlock(const char* b);
@@ -121,15 +118,12 @@ private:
     size_t currentPIDfpos;
     bool enableCompression;
 
-    PageID maxPIDInRun;
     std::vector<BucketInfo> buckets;
 
     unsigned level;
-    PageID maxPID;
 public:
     struct BlockHeader {
         uint32_t end;
-        PageID maxPID;
         run_number_t run;
     };
 

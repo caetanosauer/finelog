@@ -108,10 +108,6 @@ public:
         run_number_t begin;
         run_number_t end;
 
-        // Used as a filter to avoid unneccessary probes on older runs
-        // TODO: still necessary with vector of pids?
-        PageID maxPID;
-
         std::vector<PageID> pids;
 
         bool operator<(const RunInfo& other) const
@@ -153,7 +149,7 @@ public:
     void openNewRun(unsigned level);
     void append(char* data, size_t length, unsigned level);
     void fsync(unsigned level);
-    void closeCurrentRun(run_number_t currentRun, unsigned level, PageID maxPID = 0);
+    void closeCurrentRun(run_number_t currentRun, unsigned level);
 
     // run scanning methods
     RunFile* openForScan(const RunId& runid);
@@ -168,8 +164,7 @@ public:
 
     void newBlock(const std::vector<BucketInfo>& buckets, unsigned level);
 
-    void finishRun(run_number_t first, run_number_t last, PageID maxPID,
-            int fd, off_t offset, unsigned level);
+    void finishRun(run_number_t first, run_number_t last, int fd, off_t offset, unsigned level);
 
     template <class Input>
     void probe(std::vector<Input>&, PageID, PageID, run_number_t runBegin,
@@ -277,12 +272,13 @@ void ArchiveIndex::probe(std::vector<Input>& inputs,
             index++;
             nextRun = run.end;
 
-            if (startPID > run.maxPID) {
-                // INC_TSTAT(la_avoided_probes);
-                continue;
-            }
-
             if (run.pids.size() > 0) {
+                if (startPID > run.pids[run.pids.size()-1]) {
+                    // Prune this run if PID is larger than maximum found in run (skips binary search; should happen frequently)
+                    // INC_TSTAT(la_avoided_probes);
+                    continue;
+                }
+
                 size_t entryBegin = findEntry(&run, startPID);
 
                 if ((run.pids[entryBegin] >= endPID) && (endPID > 0)) {

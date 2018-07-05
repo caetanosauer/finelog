@@ -2,7 +2,6 @@
  * (c) Copyright 2011-2014, Hewlett-Packard Development Company, LP
  */
 
-#include <boost/regex.hpp>
 #include <cstdio>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -10,6 +9,7 @@
 #include <thread>
 #include <chrono>
 #include <algorithm>
+#include <regex>
 
 #include "log_storage.h"
 #include "log.h"
@@ -71,12 +71,12 @@ log_storage::log_storage(const std::string& logdir, bool reformat, bool delete_o
     partition_number_t  last_partition = 1;
 
     fs::directory_iterator it(_logpath), eod;
-    boost::regex log_rx(log_regex, boost::regex::basic);
+    std::regex log_rx(log_regex, std::regex::basic);
     for (; it != eod; it++) {
         fs::path fpath = it->path();
         string fname = fpath.filename().string();
 
-        if (boost::regex_match(fname, log_rx)) {
+        if (std::regex_match(fname, log_rx)) {
             if (reformat) {
                 fs::remove(fpath);
                 continue;

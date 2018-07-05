@@ -339,22 +339,23 @@ public:
     }
 };
 
-template <size_t BufferSize>
+// template <size_t BufferSize>
 class alignas(LogrecAlignment) RedoBuffer
 {
-   // TODO: using heap allocation to circumvent TLS limits wiht large DataGen transactions
+   // TODO: using heap allocation to circumvent TLS limits wiht large DataGen transactions on LeanStore
     // using BufferType = std::array<char, BufferSize>;
     char* _buffer;
+    const size_t _bufferSize;
     size_t _size;
     uint64_t _epoch;
 
 public:
-    RedoBuffer()
-        : _size(0), _epoch(0)
+    RedoBuffer(size_t bufferSize)
+        : _bufferSize(bufferSize), _size(0), _epoch(0)
     {
        // TODO aligned_alloc not working on my mac -- leaving posix_memalign for now
-       // _buffer = reinterpret_cast<char*>(std::aligned_alloc(LogrecAlignment, BufferSize));
-       auto res = posix_memalign(&_buffer, LogrecAlignment, BufferSize);
+       // _buffer = reinterpret_cast<char*>(std::aligned_alloc(LogrecAlignment, bufferSize));
+       auto res = posix_memalign(reinterpret_cast<void**>(&_buffer), LogrecAlignment, bufferSize);
        w_assert0(res == 0);
     }
 
@@ -378,7 +379,7 @@ public:
 
     size_t get_free_space()
     {
-        return BufferSize - _size;
+        return _bufferSize - _size;
     }
 
     size_t get_size()

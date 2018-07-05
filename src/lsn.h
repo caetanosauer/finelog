@@ -54,6 +54,7 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 #define FINELOG_LSN_H
 
 #include <iostream>
+#include "finelog_basics.h"
 
 /* FRJ: Major changes to lsn_t
  * Once the database runs long enough we will run out of
@@ -262,10 +263,9 @@ public:
                                     uint64_t  copy_of_data =  _data;
                                     uint64_t  m =  mask();
                                     bool first = copy_of_data > m;
-                                    uint64_t  f =
-                                                    to_file(copy_of_data);
+                                    uint64_t  f = to_file(copy_of_data);
                                     bool second = (f != 0);
-                                    w_assert2(first == second);
+                                    w_assert3(first == second);
 #endif
                                    // return (_data > mask());
                                    // FINELINE

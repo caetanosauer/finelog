@@ -303,9 +303,7 @@ AcquireResult latch_t::_acquire(latch_mode_t new_mode,
     int timeout,
     latch_holder_t* me)
 {
-    DBGTHRD( << "want to acquire in mode "
-            << W_ENUM(new_mode) << " " << *this
-            );
+    // DBGTHRD( << "want to acquire in mode " << W_ENUM(new_mode) << " " << *this);
     w_assert2(new_mode != LATCH_NL);
     w_assert2(me);
 

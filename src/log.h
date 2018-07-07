@@ -67,8 +67,6 @@ class partition_t;
 class sm_options;
 class ConsolidationArray;
 struct CArraySlot;
-class PoorMansOldestLsnTracker;
-class ticker_thread_t;
 class flush_daemon_thread_t;
 
 #include "AtomicCounter.hpp"
@@ -138,8 +136,6 @@ protected:
 
     char*                _buf; // log buffer: _segsize buffer into which
                          // inserts copy log records with LogManager::insert
-
-    ticker_thread_t* _ticker;
 
     lsn_t           _curr_lsn;
     lsn_t           _durable_lsn;

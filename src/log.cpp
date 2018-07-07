@@ -74,42 +74,6 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 using namespace std;
 
-class ticker_thread_t : public thread_wrapper_t
-{
-public:
-    ticker_thread_t(bool msec = false)
-        : msec(msec)
-    {
-        interval_usec = 1000; // 1ms
-        if (!msec) { interval_usec *= 1000; }
-        stop = false;
-    }
-
-    void shutdown()
-    {
-        stop = true;
-    }
-
-    void run()
-    {
-        while (true) {
-            if (stop) { break; }
-
-            std::this_thread::sleep_for(std::chrono::microseconds(interval_usec));
-
-            // CS TODO: fix XctLogger
-            // if (msec) { Logger::log_sys<tick_msec_log>(); }
-            // else { Logger::log_sys<tick_sec_log>(); }
-            (void) msec;
-        }
-    }
-
-private:
-    int interval_usec;
-    bool msec;
-    std::atomic<bool> stop;
-};
-
 class flush_daemon_thread_t : public thread_wrapper_t
 {
     LogManager* _log;
@@ -222,13 +186,6 @@ LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old
     _buf_epoch = _cur_epoch = epoch(start_lsn, base, offset, offset);
     _end = _start = _durable_lsn.lo();
 
-    _ticker = NULL;
-    // CS TODO: replace sm_options
-    // if (options.get_bool_option("sm_ticker_enable", false)) {
-        // bool msec = options.get_bool_option("sm_ticker_msec", false);
-        _ticker = new ticker_thread_t(true);
-    // }
-
     // CS TODO: replace sm_options
     // _group_commit_size = options.get_int_option("sm_group_commit_size", 0);
     // _group_commit_timeout = options.get_int_option("sm_group_commit_timeout", 0);
@@ -256,24 +213,12 @@ LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old
 
 void LogManager::init()
 {
-    // Consider this the beginning of log analysis so that
-    // we can factor in the time it takes to load the fetch buffers
-    if (_ticker) {
-        _ticker->fork();
-    }
     start_flush_daemon();
 }
 
 LogManager::~LogManager()
 {
-    if (_ticker) {
-        _ticker->shutdown();
-        _ticker->join();
-        delete _ticker;
-    }
-
     delete _storage;
-    // delete _oldest_lsn_tracker;
 
     delete [] _buf;
     _buf = NULL;

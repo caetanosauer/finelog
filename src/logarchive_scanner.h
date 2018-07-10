@@ -4,6 +4,8 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "logarchive_index.h"
 
@@ -24,6 +26,11 @@ struct alignas(32) MergeInput
     bool finished();
     void next();
 
+    // By-page iteration; used by whole-file merges
+    bool openByPage();
+    void nextByPage();
+    bool finishedByPage();
+
     friend bool mergeInputCmpGt(const MergeInput& a, const MergeInput& b);
 };
 
@@ -36,11 +43,14 @@ public:
     ArchiveScan(std::shared_ptr<ArchiveIndex>);
     ~ArchiveScan();
 
-    void open(PageID startPID, PageID endPID, run_number_t runBegin = 0,
-            run_number_t runEnd = 0);
+    void open(PageID startPID, PageID endPID, run_number_t runBegin = 0, run_number_t runEnd = 0);
     bool next(logrec_t*&);
     bool finished();
 
+    // By-page iteration; used by whole-file merges
+    bool openByPage();
+    void nextByPage();
+    bool finishedByPage();
 
     template <class Iter> void openForMerge(Iter begin, Iter end);
     run_number_t getLastProbedRun() const { return lastProbedRun; }
@@ -55,9 +65,11 @@ private:
 
     std::shared_ptr<ArchiveIndex> archIndex;
     uint32_t prevVersion;
-    PageID prevPID;
+    PageID currentPID;
     bool singlePage;
     run_number_t lastProbedRun;
+    // Used for whole-file merges with page skipping
+    std::unordered_map<RunId, std::unique_ptr<RunInfo>> runInfos;
 
     void clear();
 };
@@ -70,6 +82,7 @@ void ArchiveScan::openForMerge(Iter begin, Iter end)
     w_assert0(archIndex);
     clear();
     auto& inputs = _mergeInputVector;
+    runInfos.clear();
 
     for (Iter it = begin; it != end; it++) {
         MergeInput input;
@@ -80,12 +93,18 @@ void ArchiveScan::openForMerge(Iter begin, Iter end)
 
     heapBegin = inputs.begin();
 
-    // Iterate backwards to remove empty inputs and compute pids that can be ignored on each run
+    // Iterate backwards to remove empty inputs
     auto it = inputs.rbegin();
     while (it != inputs.rend())
     {
         constexpr PageID startPID = 0;
-        if (it->open(startPID)) { it++; }
+        if (it->open(startPID)) {
+            if (archIndex->shouldSkipPages()) {
+               runInfos[*it] = std::make_unique<RunInfo>();
+               runInfos[*it].loadFromFile(input.runFile, *it);
+            }
+            it++;
+        }
         else {
             std::advance(it, 1);
             inputs.erase(it.base());
@@ -94,6 +113,7 @@ void ArchiveScan::openForMerge(Iter begin, Iter end)
 
     heapEnd = inputs.end();
     std::make_heap(heapBegin, heapEnd, mergeInputCmpGt);
+    currentPID = 0;
 }
 
 #endif

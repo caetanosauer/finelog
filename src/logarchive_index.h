@@ -127,12 +127,29 @@ public:
             addRawEntry(pid, offset | (hasImage ? Mask : 0));
         }
 
-        uint64_t getOffset(int i)
+        uint64_t getOffset(int i) const
         {
             return offsets[i] & ~Mask;
         }
 
+        PageID getPid(int i) const
+        {
+           if (i >= pids.size()) { i = pids.size() - 1; }
+           return pids[i];
+        }
+
+        PageID getLastPid() const
+        {
+           return pids[pids.size() - 1];
+        }
+
+        bool entryHasImage(int i) const
+        {
+           return offsets[i] & Mask;
+        }
+
         void serialize(int fd, off_t offset);
+        void loadFromFile(RunFile*, const RunId&);
 
     private:
         std::vector<uint64_t> offsets;
@@ -172,6 +189,8 @@ public:
 
     void loadRunInfo(RunFile*, const RunId&);
     void startNewRun(unsigned level);
+
+    RunInfo& getRunInfo(const RunId&) const;
 
     unsigned getMaxLevel() const { return maxLevel; }
     size_t getRunCount(unsigned level) {
@@ -287,8 +306,7 @@ void ArchiveIndex::probe(std::vector<Input>& inputs,
                 }
 
                 input.pos = run.getOffset(entryBegin);
-                input.runFile =
-                    openForScan(RunId{run.begin, run.end, level});
+                input.runFile = openForScan(RunId{run.begin, run.end, level});
                 w_assert1(input.pos < input.runFile->length);
                 inputs.push_back(input);
             }

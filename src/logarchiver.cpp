@@ -437,10 +437,10 @@ void MergerDaemon::doMerge(unsigned level, unsigned fanin)
         outdir->openNewRun(level+1);
 
         constexpr int runNumber = 1;
-        if (!scan.finished()) {
+        if (!scan.finishedByPage()) {
             logrec_t* lr;
             blkAssemb.start(runNumber);
-            while (scan.next(lr)) {
+            while (scan.nextByPage(lr)) {
                 if (!blkAssemb.add(lr)) {
                     blkAssemb.finish();
                     blkAssemb.start(runNumber);

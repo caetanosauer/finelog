@@ -14,13 +14,12 @@ bool mergeInputCmpGt(const MergeInput& a, const MergeInput& b)
 }
 
 ArchiveScan::ArchiveScan(std::shared_ptr<ArchiveIndex> archIndex)
-    : archIndex(archIndex), prevVersion(0), prevPID(0), singlePage(false), lastProbedRun(0)
+    : archIndex(archIndex), prevVersion(0), currentPID(0), singlePage(false), lastProbedRun(0)
 {
     clear();
 }
 
-void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin,
-        run_number_t runEnd)
+void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin, run_number_t runEnd)
 {
     w_assert0(archIndex);
     clear();
@@ -55,6 +54,11 @@ void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin,
     std::make_heap(heapBegin, heapEnd, mergeInputCmpGt);
 }
 
+void ArchiveScan::openByPage()
+{
+   open(0, 0);
+}
+
 bool ArchiveScan::finished()
 {
     return heapBegin == heapEnd;
@@ -70,11 +74,12 @@ void ArchiveScan::clear()
     heapBegin = inputs.end();
     heapEnd = inputs.end();
     prevVersion = 0;
-    prevPID = 0;
+    currentPID = 0;
 }
 
 bool ArchiveScan::next(logrec_t*& lr)
 {
+retry:
     if (finished()) { return false; }
 
     // CS: This optimization does not work with FineLine, because the mapping
@@ -92,25 +97,43 @@ bool ArchiveScan::next(logrec_t*& lr)
     //     }
     // }
     // else
-    {
-        std::pop_heap(heapBegin, heapEnd, mergeInputCmpGt);
-        auto top = std::prev(heapEnd);
-        if (!top->finished()) {
-            lr = top->logrec();
-            w_assert1(lr->page_version() == top->keyVersion && lr->pid() == top->keyPID);
-            top->next();
-            std::push_heap(heapBegin, heapEnd, mergeInputCmpGt);
+    std::pop_heap(heapBegin, heapEnd, mergeInputCmpGt);
+    auto top = std::prev(heapEnd);
+    if (!top->finished()) {
+        lr = top->logrec();
+        w_assert1(lr->page_version() == top->keyVersion && lr->pid() == top->keyPID);
+        if (archIndex->shouldSkipPages()) {
+           auto& runInfo = runInfo[top->runFile->runid];
+           top->nextByPage(runInfo);
+        } else {
+           top->next();
         }
-        else {
-            heapEnd--;
-            return next(lr);
+        std::push_heap(heapBegin, heapEnd, mergeInputCmpGt);
+    }
+    else {
+        heapEnd--;
+        return next(lr);
+    }
+
+    // Check if we're moving to a new PID
+    if (lr->pid() != currentPID && ) {
+        currentPID = lr->pid();
+        // Check if any of the other runs on higher epochs has an image on that page
+        for (it = heapBegin; it != heapEnd; it++) {
+           if (it == top) { continue; }
+           const RunId& runid = it->runFile->runid;
         }
     }
 
     prevVersion = lr->page_version();
-    prevPID = lr->pid();
+    currentPID = lr->pid();
 
     return true;
+}
+
+bool ArchiveScan::nextByPage(logrec_t*& lr)
+{
+   return true;
 }
 
 ArchiveScan::~ArchiveScan()
@@ -174,4 +197,59 @@ void MergeInput::next()
     w_assert1(logrec()->valid_header());
     keyPID = logrec()->pid();
     keyVersion = logrec()->page_version();
+}
+
+// This type of iteration is optimized for whole-file merges.
+// It jumps offsets according to the page information available in a RunInfo object.
+void MergeInput::nextByPage(RunInfo& runInfo)
+{
+    w_assert1(!finished());
+    pos += logrec()->length();
+    w_assert1(logrec()->valid_header());
+
+    while (true) {
+       // WARNING: In this iterator, endPID is reused to store RunInfo entry slot of current keyPID
+       auto& currentSlot = endPID;
+       PageID nextPid = runInfo.getPid(currentSlot+1);
+       if (nextPid == keyPID) {
+          // getPid returns the last pid if currentSlot went out of bounds
+          break;
+       }
+       auto nextPidPos = runInfo.getOffset(currentSlot+1);
+       if (pos >= nextPidPos) {
+          // We already scanning the next pid/slot
+          currentSlot++;
+          w_assert1(pos == nextPidPos);
+          if (pidsToIgnore.count(nextPid)) {
+             // Current PID should be ignored -- jump to next slot
+             currentSlot++;
+             if (nextPid == runInfo.getLastPid()) {
+                // We're done scanning, but there's no easy way to skip the last pid, so we just keep going
+             } else {
+                pos = runInfo.getOffset(currentSlot);
+             }
+             continue;
+          };
+       }
+       break;
+    }
+
+    // Access mmap memory to read log record
+    keyPID = logrec()->pid();
+    keyVersion = logrec()->page_version();
+}
+
+// endPID is not used for this iterator variant!
+bool MergeInput::finishedByPage()
+{
+    if (!runFile || runFile->length == 0) { return true; }
+    return logrec()->is_eof();
+}
+
+bool MergeInput::openByPage()
+{
+   // Just makes sure that endPID (which is interpreted as current slot in RunInfo) is initialized to 0
+   endPID = 0;
+   constexpr PageID startPID = 0;
+   return open(startPID);
 }

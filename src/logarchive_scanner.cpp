@@ -41,7 +41,7 @@ void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin,
             if (singlePage && lr->has_page_img()) {
                 // Any entries beyond it (including it are ignored)
                 heapBegin = it.base();
-                // ADD_TSTAT(la_img_trimmed, heapBegin - inputs.begin());
+                ADD_TSTAT(la_img_trimmed, heapBegin - inputs.begin());
                 break;
             }
         }
@@ -141,18 +141,18 @@ bool MergeInput::open(PageID startPID)
         // advance index until firstPID is reached
         if (keyPID < startPID) {
             while (!finished() && lr->pid() < startPID) {
-                // ADD_TSTAT(la_skipped_bytes, lr->length());
+                ADD_TSTAT(la_skipped_bytes, lr->length());
                 next();
                 lr = logrec();
             }
             if (finished()) {
-                // INC_TSTAT(la_wasted_read);
+                INC_TSTAT(la_wasted_read);
                 return false;
             }
         }
     }
     else {
-        // INC_TSTAT(la_wasted_read);
+        INC_TSTAT(la_wasted_read);
         return false;
     }
 

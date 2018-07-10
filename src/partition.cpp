@@ -170,10 +170,10 @@ void partition_t::flush(
 
         if(grand_total == log_storage::BLOCK_SIZE) {
             // 1-block flush
-            // INC_TSTAT(log_short_flush);
+            INC_TSTAT(log_short_flush);
         } else {
             // 2-or-more-block flush
-            // INC_TSTAT(log_long_flush);
+            INC_TSTAT(log_long_flush);
         }
 
         // CS FINELINE TODO: this is a temporary solution for the log priming problem.
@@ -193,7 +193,7 @@ void partition_t::flush(
         auto ret = ::writev(_fhdl, iov, 4);
         CHECK_ERRNO(ret);
 
-        // ADD_TSTAT(log_bytes_written, grand_total);
+        ADD_TSTAT(log_bytes_written, grand_total);
     } // end copy skip record
 
     fsync_delayed(_fhdl); // fsync
@@ -244,7 +244,7 @@ void partition_t::fsync_delayed(int fd)
     // We only cound the fsyncs called as
     // a result of flush(), not from peek
     // or start-up
-    // INC_TSTAT(log_fsync_cnt);
+    INC_TSTAT(log_fsync_cnt);
 
     auto ret = ::fsync(fd);
     CHECK_ERRNO(ret);

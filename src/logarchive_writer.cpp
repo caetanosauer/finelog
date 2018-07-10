@@ -105,7 +105,7 @@ bool BlockAssembly::add(logrec_t* lr)
         buckets.back().hasPageImage = true;
         if (enableCompression) {
             // Keep track of compression efficicency
-            // ADD_TSTAT(la_img_compressed_bytes, pos - currentPIDpos);
+            ADD_TSTAT(la_img_compressed_bytes, pos - currentPIDpos);
             //  Simply discard all log records produced for the current PID do far
             pos = currentPIDpos;
             fpos = currentPIDfpos;

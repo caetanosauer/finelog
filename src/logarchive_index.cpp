@@ -301,7 +301,7 @@ void ArchiveIndex::append(char* data, size_t length, unsigned level)
     // beginning of block must be a valid log record
     w_assert1(reinterpret_cast<logrec_t*>(data)->valid_header());
 
-    // INC_TSTAT(la_block_writes);
+    INC_TSTAT(la_block_writes);
     auto ret = ::pwrite(appendFd[level], data, length + logrec_t::get_eof_logrec().length(),
                 appendPos[level]);
     CHECK_ERRNO(ret);
@@ -360,7 +360,7 @@ RunFile* ArchiveIndex::openForScan(const RunId& runid)
 	}
     }
 
-    // INC_TSTAT(la_open_count);
+    INC_TSTAT(la_open_count);
 
     return &file;
 }

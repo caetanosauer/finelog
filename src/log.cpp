@@ -613,8 +613,8 @@ void LogManager::insert_raw(const char* src, size_t length, lsn_t* rlsn)
 
     _leave_carray(info, length);
 
-    // INC_TSTAT(log_inserts);
-    // ADD_TSTAT(log_bytes_generated,length);
+    INC_TSTAT(log_inserts);
+    ADD_TSTAT(log_bytes_generated,length);
 }
 
 void LogManager::insert(logrec_t &rec, lsn_t* rlsn)
@@ -640,8 +640,8 @@ void LogManager::insert(logrec_t &rec, lsn_t* rlsn)
     }
     DBGOUT3(<< " insert @ lsn: " << rec_lsn << " type " << rec.type() << " length " << rec.length() );
 
-    // INC_TSTAT(log_inserts);
-    // ADD_TSTAT(log_bytes_generated,size);
+    INC_TSTAT(log_inserts);
+    ADD_TSTAT(log_bytes_generated,size);
 }
 
 void LogManager::_copy_raw(CArraySlot* info, long& pos, const char* data,
@@ -740,7 +740,7 @@ void LogManager::flush(const lsn_t &to_lsn, bool block, bool signal, bool *ret_f
             if (ret_flushed) *ret_flushed = true;// now flushed!
         }
     } else {
-        // INC_TSTAT(log_dup_sync_cnt);
+        INC_TSTAT(log_dup_sync_cnt);
         if (ret_flushed) *ret_flushed = true; // already flushed
     }
 }

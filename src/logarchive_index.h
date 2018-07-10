@@ -275,14 +275,14 @@ void ArchiveIndex::probe(std::vector<Input>& inputs,
             if (run.pids.size() > 0) {
                 if (startPID > run.pids[run.pids.size()-1]) {
                     // Prune this run if PID is larger than maximum found in run (skips binary search; should happen frequently)
-                    // INC_TSTAT(la_avoided_probes);
+                    INC_TSTAT(la_avoided_probes);
                     continue;
                 }
 
                 size_t entryBegin = findEntry(&run, startPID);
 
                 if ((run.pids[entryBegin] >= endPID) && (endPID > 0)) {
-                    // INC_TSTAT(la_avoided_probes);
+                    INC_TSTAT(la_avoided_probes);
                     continue;
                 }
 

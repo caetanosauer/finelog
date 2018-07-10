@@ -249,7 +249,7 @@ void LogArchiver::run()
 
         if (shutdownFlag) { break; }
 
-        // INC_TSTAT(la_activations);
+        INC_TSTAT(la_activations);
         DBGOUT(<< "Log archiver activated from " << nextLSN << " to " << endRoundLSN);
 
         replacement();

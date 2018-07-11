@@ -42,6 +42,12 @@ typedef uint32_t    StoreID;
 // Used in log archive
 typedef int32_t run_number_t;
 
+// TSTAT macros only make sense in Zero
+#ifndef ZERO_SM
+#define ADD_TSTAT(x,y)
+#define INC_TSTAT(x)
+#endif
+
 /**
 * \brief CPU Cache line size in bytes.
 * \details

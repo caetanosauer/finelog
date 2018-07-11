@@ -282,10 +282,12 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
 
             // Notify other services that depend on archived LSN
             if (level == 1) {
-                // CS TODO
-                // if (smlevel_0::bf) {
-                //     smlevel_0::bf->notify_archived_run(currentRun);
-                // }
+                // CS TODO -- this should be a callback or semothing, so we don't depend on Zero
+#ifdef ZERO_SM
+                if (smlevel_0::bf) {
+                    smlevel_0::bf->notify_archived_run(currentRun);
+                }
+#endif
             }
         }
     }

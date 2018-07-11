@@ -59,7 +59,9 @@ bool BlockAssembly::start(run_number_t run)
     DBGTHRD(<< "Picked block for selection " << (void*) dest);
 
     if (run != lastRun) {
-        archIndex->startNewRun(level);
+        // Only start new run if it's teh archival process
+        // -- a merged run is created once with openNewRun and then finished at BlockAssembly::shutdown
+        if (level == 1) { archIndex->startNewRun(level); }
         fpos = 0;
         lastRun = run;
         currentPID = numeric_limits<PageID>::max();
@@ -175,6 +177,8 @@ void WriterThread::run()
              * that all pending blocks are written out before shutdown.
              */
             DBGTHRD(<< "Finished flag set on writer thread");
+	    // closeCurrentRun should only be called when switching to a new run,
+            // because of how log files map to runs now
             // index->closeCurrentRun(currentRun, level);
             return; // finished is set on buf
         }

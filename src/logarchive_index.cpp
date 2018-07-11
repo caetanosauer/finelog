@@ -251,6 +251,8 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
     }
     else {
         lastRun = getLastRun(level);
+        w_assert0(appendPos[level] > 0);
+        w_assert0(appendFd[level] >= 0);
     }
 
     if (appendFd[level] >= 0) {
@@ -264,6 +266,7 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
                 }
             }
 
+	    w_assert0(lastRun < currentRun);
             finishRun(lastRun+1, currentRun, appendFd[level], appendPos[level], level);
             fs::path new_path = make_run_path(lastRun+1, currentRun, level);
             fs::rename(make_current_run_path(level), new_path);
@@ -483,6 +486,7 @@ void ArchiveIndex::finishRun(run_number_t begin, run_number_t end, int fd, off_t
         runs[level][lf].end = end;
     }
 
+    w_assert0(level == 1 || lf < (int) runs[level].size());
     if (offset > 0 && lf < (int) runs[level].size()) {
         serializeRunInfo(runs[level][lf], fd, offset);
     }
@@ -501,6 +505,7 @@ void ArchiveIndex::RunInfo::serialize(int fd, off_t offset)
     CHECK_ERRNO(ret);
     ret = ::pwrite(fd, &offsets[0], offsets_size, offset + pids_size);
     // Write run footer
+    w_assert0(offset > 0);
     RunFooter footer {static_cast<uint64_t>(offset), entryCount};
     ret = ::pwrite(fd, &footer, sizeof(RunFooter), offset + pids_size + offsets_size);
 }
@@ -537,9 +542,7 @@ run_number_t ArchiveIndex::getLastRun()
     for (unsigned l = 1; l <= maxLevel; l++) {
         if (lastFinished[l] >= 0) {
             auto& run = runs[l][lastFinished[l]];
-            if (run.end > last) {
-                last = run.end;
-            }
+            if (run.end > last) { last = run.end; }
         }
     }
 
@@ -581,6 +584,7 @@ void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
         RunFooter footer = *(reinterpret_cast<RunFooter*>(runFile->getOffset(footer_offset)));
         // Get offset of first index entry
         w_assert0(runFile->length > footer.index_begin);
+        w_assert0(footer.index_begin > 0);
         // w_assert0(runFile->length > sizeof(RunFooter) + footer.index_size);
         off_t index_offset = footer.index_begin;
         // Copy entries into initialized vector

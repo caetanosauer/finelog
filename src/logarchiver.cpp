@@ -409,20 +409,22 @@ void MergerDaemon::doMerge(unsigned level, unsigned fanin)
     statsNext.sort(runComp);
 
     // grab first run which is missing from next level
-    auto nextRun = stats.front().begin;
+    auto firstMergedRun = stats.front().begin;
     if (statsNext.size() > 0) {
-        nextRun = statsNext.back().end + 1;
+        firstMergedRun = statsNext.back().end + 1;
     }
 
     // collect 'fanin' runs in the current level starting from nextLSN
     auto begin = stats.begin();
-    while (begin != stats.end() && nextRun > begin->begin) { begin++; }
+    while (begin != stats.end() && firstMergedRun > begin->begin) { begin++; }
     auto end = begin;
     unsigned count = 0;
     while (count < fanin && end != stats.end()) {
         end++;
         count++;
     }
+    auto lastMergedRun = (end == stats.end()) ?  stats.back().end : (end->end - 1);
+
     if (count < fanin) {
         // CS TODO: merge policies
         DBGOUT3(<< "Not enough runs to merge");
@@ -435,6 +437,7 @@ void MergerDaemon::doMerge(unsigned level, unsigned fanin)
         scan.openForMerge(begin, end);
         BlockAssembly blkAssemb(outdir.get(), _blockSize, level+1, _compression);
         outdir->openNewRun(level+1);
+        outdir->startNewRun(level+1);
 
         constexpr int runNumber = 1;
         if (!scan.finished()) {
@@ -450,6 +453,7 @@ void MergerDaemon::doMerge(unsigned level, unsigned fanin)
             blkAssemb.finish();
         }
 
+        outdir->closeCurrentRun(lastMergedRun, level+1);
         blkAssemb.shutdown();
     }
 }

@@ -74,6 +74,8 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 
 using namespace std;
 
+std::unordered_map<uint16_t, uint64_t> LogManager::_log_file_epochs;
+
 class flush_daemon_thread_t : public thread_wrapper_t
 {
     LogManager* _log;

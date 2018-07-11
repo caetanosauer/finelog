@@ -12,6 +12,7 @@
 #include <regex>
 
 #include "log_storage.h"
+#include "logarchive_index.h"
 #include "log.h"
 #include "latches.h"
 #include "worker_thread.h"
@@ -178,9 +179,7 @@ unsigned log_storage::delete_old_partitions(partition_number_t older_than)
     // if (!smlevel_0::log || !smlevel_0::bf) { return 0; }
 
     if (older_than == 0) {
-        // CS TODO: this must be abstracted in finelog, since there is no bf!
-        // older_than = smlevel_0::bf->get_archived_run();
-       return 0;
+        older_than = ArchiveIndex::archived_run.load();
     }
 
     unsigned count = 0;

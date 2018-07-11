@@ -38,6 +38,8 @@ const string ArchiveIndex::CURR_RUN_PREFIX = "current_run_";
 const string ArchiveIndex::run_regex =
     "^archive_([1-9][0-9]*)_([1-9][0-9]*)-([1-9][0-9]*)$";
 const string ArchiveIndex::current_regex = "^current_run_[1-9][0-9]*$";
+ std::atomic<run_number_t> ArchiveIndex::archived_run;
+ std::atomic<uint64_t> ArchiveIndex::archived_epoch;
 
 struct RunFooter {
     uint64_t index_begin;
@@ -151,6 +153,8 @@ ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool 
             }
         }
     }
+
+    archived_run = getLastRun();
 
     // if (replFactor > 0) {
         // CS TODO -- not implemented, see comments on deleteRuns
@@ -282,10 +286,9 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
 
             // Notify other services that depend on archived LSN
             if (level == 1) {
-                // CS TODO
-                // if (smlevel_0::bf) {
-                //     smlevel_0::bf->notify_archived_run(currentRun);
-                // }
+		archived_run = currentRun;
+		archived_epoch = LogManager::get_log_file_epoch(archived_run);
+		cerr << "archived_epoch = " << archived_epoch << endl;
             }
         }
     }

@@ -249,6 +249,10 @@ public:
     const static std::string CURR_RUN_PREFIX;
     const static std::string run_regex;
     const static std::string current_regex;
+
+    // TODO these are static for now because there's no pragmatic way to introduce a dependency between components
+    static std::atomic<run_number_t> archived_run;
+    static std::atomic<uint64_t> archived_epoch;
 };
 
 template <class Input>

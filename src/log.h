@@ -119,7 +119,7 @@ public:
     log_storage* get_storage() { return _storage; }
     // PoorMansOldestLsnTracker* get_oldest_lsn_tracker() { return _oldest_lsn_tracker; }
     EpochTracker<>& get_epoch_tracker() { return _epoch_tracker; }
-    uint64_t get_log_file_epoch(uint16_t p)
+    static uint64_t get_log_file_epoch(uint16_t p)
     {
         auto it = _log_file_epochs.find(p);
         if (it != _log_file_epochs.end()) { return it->second; }
@@ -182,7 +182,8 @@ protected:
     log_storage*    _storage;
     // PoorMansOldestLsnTracker* _oldest_lsn_tracker;
     EpochTracker<> _epoch_tracker;
-    std::unordered_map<uint16_t, uint64_t> _log_file_epochs;
+    // TODO this is static for now because there's no pragmatic way to introduce a dependency between components
+    static std::unordered_map<uint16_t, uint64_t> _log_file_epochs;
 
     enum { invalid_fhdl = -1 };
 

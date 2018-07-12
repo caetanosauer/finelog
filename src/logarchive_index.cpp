@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sstream>
 #include <regex>
+#include <unordered_set>
 
 #include "lsn.h"
 #include "latches.h"
@@ -19,8 +20,10 @@ using namespace std;
 class RunRecycler : public worker_thread_t
 {
 public:
+    static constexpr int RunRecyclerIntervalMs = 10'000;
+
     RunRecycler(unsigned replFactor, ArchiveIndex* archIndex)
-        : archIndex(archIndex), replFactor(replFactor)
+        : worker_thread_t(RunRecyclerIntervalMs), archIndex(archIndex), replFactor(replFactor)
     {}
 
     virtual void do_work()
@@ -156,11 +159,12 @@ ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool 
 
     archived_run = getLastRun();
 
-    // if (replFactor > 0) {
-        // CS TODO -- not implemented, see comments on deleteRuns
-        // runRecycler.reset(new RunRecycler {replFactor, this});
-        // runRecycler->fork();
-    // }
+    // TODO parametrize
+    constexpr int replFactor = 1;
+    if (replFactor > 0) {
+        runRecycler.reset(new RunRecycler {replFactor, this});
+        runRecycler->fork();
+    }
 }
 
 ArchiveIndex::~ArchiveIndex()
@@ -309,6 +313,9 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
     }
 
     openNewRun(level);
+
+    // Run reclycler now runs periodically
+    // if (level > 1 && runRecycler) { runRecycler->wakeup(); }
 }
 
 void ArchiveIndex::append(char* data, size_t length, unsigned level)
@@ -358,28 +365,36 @@ RunFile* ArchiveIndex::openForScan(const RunId& runid)
 
     file.refcount++;
 
-    // Close oldest open file without references
+    // INC_TSTAT(la_open_count);
     if (_open_files.size() > _max_open_files) {
-	for (auto it = _open_files.cbegin(); it != _open_files.cend();) {
-            if (it->second.refcount == 0) {
-                w_assert0(it->second.data);
-                auto ret = munmap(it->second.data, it->second.length);
-                CHECK_ERRNO(ret);
-                ret = ::close(it->second.fd);
-                CHECK_ERRNO(ret);
-                it = _open_files.erase(it);
-                // CS TODO: fix XctLogger
-                // Logger::log_sys<comment_log>("closed_run " + to_string(runid.level) +
-                //         " " + to_string(runid.begin) + " " + to_string(runid.end));
-                break;
-            }
-	    ++it;
-	}
+       closeUnusedFiles();
     }
 
-    // INC_TSTAT(la_open_count);
-
     return &file;
+}
+
+// maxRun and minLevel avoid closing too many files after a merge
+void ArchiveIndex::closeUnusedFiles(unsigned maxRun, unsigned minLevel)
+{
+    // Caller must hold exclusive latch
+    // Close oldest open file without references
+    if (maxRun == 0) { maxRun = std::numeric_limits<unsigned>::max(); }
+    for (auto it = _open_files.begin(); it != _open_files.end();) {
+        auto& runFile = it->second;
+        if (runFile.refcount == 0 && runFile.runid.begin <= maxRun && runFile.runid.level >= minLevel) {
+            w_assert0(runFile.data);
+            auto ret = munmap(runFile.data, runFile.length);
+            CHECK_ERRNO(ret);
+            ret = ::close(runFile.fd);
+            CHECK_ERRNO(ret);
+            it = _open_files.erase(it);
+            // CS TODO: fix XctLogger
+            // Logger::log_sys<comment_log>("closed_run " + to_string(runid.level) +
+            //         " " + to_string(runid.begin) + " " + to_string(runid.end));
+            break;
+        }
+        ++it;
+    }
 }
 
 void ArchiveIndex::closeScan(const RunId& runid)
@@ -405,7 +420,7 @@ void ArchiveIndex::deleteRuns(unsigned replicationFactor)
      *   type of reference-counting mechanism is required (e.g., shared_ptr).
      * - Deleting multiple runs cannot be done atomically, so it's an
      *   operation that must be logged and repeated during recovery in
-     *   case of a crash.
+     *   case of a crash. (UPDATE: Not a problem with replFactor and RunRecycler)
      * - Not only is logging required, but we must make sure that recovery
      *   correctly covers all possible states -- any of the N runs being
      *   deleted might independently be in one of 3 states: removed from index
@@ -420,10 +435,14 @@ void ArchiveIndex::deleteRuns(unsigned replicationFactor)
      * Currently, runs are only deleted in ss_m::_truncate_los, which runs
      * after shutdown and thus is free of the issues above. That's also why
      * this method currently only removes files
+     *
+     * CURRENT SOLUTION: mark runs to be deleted when they are closed
+     * (_open_files already uses a ref counter to address issues above)
      */
-    spinlock_write_critical_section cs(&_mutex);
 
     if (replicationFactor == 0) { // delete all runs
+        spinlock_write_critical_section cs(&_mutex);
+
         fs::directory_iterator it(archpath), eod;
         std::regex run_rx(run_regex);
         for (; it != eod; it++) {
@@ -436,28 +455,61 @@ void ArchiveIndex::deleteRuns(unsigned replicationFactor)
         return;
     }
 
-    for (unsigned level = maxLevel; level > 0; level--) {
-        if (level <= replicationFactor) {
-            // there's no run with the given replication factor -- just return
-            return;
-        }
-        for (int h = lastFinished[level]; h >= 0; h--) {
-            auto& high = runs[level][h];
-            unsigned levelToClean = level - replicationFactor;
-            while (levelToClean > 0) {
-                // delete all runs within the LSN range of the higher-level run
-                for (int l = lastFinished[levelToClean]; l >= 0; l--) {
-                    auto& low = runs[levelToClean][l];
-                    if (low.begin >= high.begin && low.end <= high.end)
-                    {
-                        auto path = make_run_path(low.begin, low.end, levelToClean);
-                        fs::remove(path);
+    std::unordered_set<RunId> runsToDelete;
+    unsigned maxRun = 0;
+    unsigned minLevel = std::numeric_limits<unsigned>::max();
+    {
+        spinlock_read_critical_section cs(&_mutex);
+        for (unsigned level = maxLevel; level > 0; level--) {
+            if (level <= replicationFactor) {
+                // there's no run with the given replication factor -- just return
+                break;
+            }
+            for (int h = lastFinished[level]; h >= 0; h--) {
+                auto& high = runs[level][h];
+                unsigned levelToClean = level - replicationFactor;
+                while (levelToClean > 0) {
+                    // delete all runs within the LSN range of the higher-level run
+                    for (int l = lastFinished[levelToClean]; l >= 0; l--) {
+                        auto& low = runs[levelToClean][l];
+                        if (low.begin >= high.begin && low.end <= high.end)
+                        {
+                            runsToDelete.insert(RunId{low.begin, low.end, levelToClean});
+                            if (low.end > maxRun) { maxRun = low.end; }
+                            if (levelToClean < minLevel) { minLevel = levelToClean; }
+                        }
                     }
+                    levelToClean--;
                 }
-                levelToClean--;
             }
         }
     }
+
+    if (runsToDelete.size() > 0) {
+        spinlock_write_critical_section cs(&_mutex);
+        // Close files that are not used, so that they can be deleted if they were merged
+        closeUnusedFiles(maxRun, minLevel);
+        // Do a pass over files marked for deletion earlier
+        for (auto it = runsToDelete.begin(); it != runsToDelete.end();) {
+           if (tryFileDeletion(*it)) {
+              it = runsToDelete.erase(it);
+           } else {
+              it++;
+           }
+        }
+    }
+}
+
+bool ArchiveIndex::tryFileDeletion(const RunId& runid)
+{
+    // Caller must hold exclusive latch
+    // File still open -- can't delete
+    if (_open_files.count(runid) > 0) { return false; }
+    auto path = make_run_path(runid.begin, runid.end, runid.level);
+    fs::remove(path);
+    // TODO for now, we leave the RunInfo in the index and just delete the file
+    // -- unless we have a bug, those runs will not be accessed again anyway
+    return true;
 }
 
 void ArchiveIndex::newBlock(const vector<BucketInfo>& buckets, unsigned level)
@@ -501,8 +553,6 @@ void ArchiveIndex::finishRun(run_number_t begin, run_number_t end, int fd, off_t
     if (offset > 0 && lf < (int) runs[level].size()) {
         serializeRunInfo(runs[level][lf], fd, offset);
     }
-
-    if (level > 1 && runRecycler) { runRecycler->wakeup(); }
 }
 
 void ArchiveIndex::RunInfo::serialize(int fd, off_t offset) const

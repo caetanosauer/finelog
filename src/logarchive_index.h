@@ -159,6 +159,7 @@ public:
     void listFiles(std::vector<std::string>& list, int level = -1);
     void listFileStats(std::list<RunId>& list, int level = -1);
     void deleteRuns(unsigned replicationFactor = 0);
+    void closeUnusedFiles(unsigned maxRun = 0, unsigned minLevel = 0);
 
     static bool parseRunFileName(std::string fname, RunId& fstats);
     static size_t getFileSize(int fd);
@@ -233,6 +234,7 @@ private:
     unsigned maxLevel;
 
     std::unique_ptr<RunRecycler> runRecycler;
+    bool tryFileDeletion(const RunId& runid);
 
     mutable srwlock_t _mutex;
 

@@ -69,12 +69,11 @@ Rome Research Laboratory Contract No. F30602-97-2-0247.
 // 1/4 of typical cache-line size (64B)
 constexpr size_t LogrecAlignment = 16;
 
-// CS TODO: disable alignment and measure tradeoff in space consumption vs CPU overhead
 struct alignas(LogrecAlignment) baseLogHeader
 {
    uint32_t _pid;
    uint32_t _page_version;
-   uint16_t _len;
+   uint32_t _len;
    uint8_t _type;
 
    bool is_valid() const;
@@ -84,7 +83,8 @@ static_assert(sizeof(baseLogHeader) == LogrecAlignment, "Wrong logrec header siz
 
 class alignas(LogrecAlignment) logrec_t final {
 public:
-    static constexpr size_t MaxLogrecSize = 3 * 8192;
+    // logrec_t can hold up to 3 pages of 64KB
+    static constexpr size_t MaxLogrecSize = 3 * 65536;
     static constexpr size_t MaxDataSize = MaxLogrecSize - sizeof(baseLogHeader);
     static constexpr uint8_t MaxLogrecType = std::numeric_limits<uint8_t>::max();
 

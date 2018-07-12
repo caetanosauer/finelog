@@ -100,6 +100,7 @@ public:
     lsn_t durable_lsn() const { return _durable_lsn; }
 
     void start_flush_daemon();
+    void stop_flush_daemon();
 
     long segsize() const { return _segsize; }
 
@@ -265,7 +266,6 @@ protected:
     flush_daemon_thread_t*           _flush_daemon;
     /// @todo both of the below should become std::atomic_flag's at some time
     lintel::Atomic<bool> _shutting_down;
-    lintel::Atomic<bool> _flush_daemon_running; // for asserts only
 
     /**
      * Consolidation array for this log manager.

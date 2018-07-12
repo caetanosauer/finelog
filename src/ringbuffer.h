@@ -117,7 +117,7 @@ inline char* AsyncRingBuffer::consumerRequest()
         cond.wait_for(lck, 100ms, [this] { return finished || !isEmpty(); });
     }
     // Consumer doesn't finish until the queue is empty
-    if (finished && !isEmpty()) {
+    if (finished && isEmpty()) {
         return NULL;
     }
     return buf + (begin * blockSize);

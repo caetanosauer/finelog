@@ -90,8 +90,26 @@ public:
 
 void LogManager::start_flush_daemon()
 {
-    _flush_daemon_running = true;
+    w_assert0(!_flush_daemon);
+    _flush_daemon = new flush_daemon_thread_t(this);
+    w_assert0(!_shutting_down);
     _flush_daemon->fork();
+}
+
+void LogManager::stop_flush_daemon()
+{
+    if (!_flush_daemon) { return; }
+    _shutting_down = true;
+    while (*&_shutting_down) {
+        CRITICAL_SECTION(cs, _wait_flush_lock);
+        // The only thread that should be waiting
+        // on the _flush_cond is the log flush daemon.
+        // Yet somehow we wedge here.
+        DO_PTHREAD(pthread_cond_broadcast(&_flush_cond));
+    }
+    _flush_daemon->join();
+    delete _flush_daemon;
+    _flush_daemon = nullptr;
 }
 
 logrec_t* LogManager::fetch_direct(shared_ptr<partition_t> p, lsn_t lsn)
@@ -106,26 +124,7 @@ logrec_t* LogManager::fetch_direct(shared_ptr<partition_t> p, lsn_t lsn)
 
 void LogManager::shutdown()
 {
-    // gnats 52:  RACE: We set _shutting_down and signal between the time
-    // the daemon checks _shutting_down (false) and waits.
-    //
-    // So we need to notice if the daemon got the message.
-    // It tells us it did by resetting the flag after noticing
-    // that the flag is true.
-    // There should be no interference with these two settings
-    // of the flag since they happen strictly in that sequence.
-    //
-    _shutting_down = true;
-    while (*&_shutting_down) {
-        CRITICAL_SECTION(cs, _wait_flush_lock);
-        // The only thread that should be waiting
-        // on the _flush_cond is the log flush daemon.
-        // Yet somehow we wedge here.
-        DO_PTHREAD(pthread_cond_broadcast(&_flush_cond));
-    }
-    _flush_daemon->join();
-    _flush_daemon_running = false;
-    delete _flush_daemon;
+    stop_flush_daemon();
     _flush_daemon=NULL;
 }
 
@@ -143,8 +142,8 @@ LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old
       _start(0),
       _end(0),
       _waiting_for_flush(false),
-      _shutting_down(false),
-      _flush_daemon_running(false)
+      _flush_daemon(nullptr),
+      _shutting_down(false)
 {
     _segsize = SEGMENT_SIZE;
 
@@ -155,9 +154,6 @@ LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old
     // csauer: used to be an sm_option
     uint32_t carray_slots = ConsolidationArray::DEFAULT_ACTIVE_SLOT_COUNT;
     _carray = new ConsolidationArray(carray_slots);
-
-    /* Create thread o flush the log */
-    _flush_daemon = new flush_daemon_thread_t(this);
 
     _buf = new char[_segsize];
 
@@ -184,7 +180,6 @@ LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old
     // that there is no log daemon running yet. If we ever fire this
     // assert, we'd better see why and it means we might have to protect
     // _cur_epoch and _start/_end with a critical section on _insert_lock.
-    w_assert1(_flush_daemon_running == false);
     _buf_epoch = _cur_epoch = epoch(start_lsn, base, offset, offset);
     _end = _start = _durable_lsn.lo();
 

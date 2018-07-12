@@ -58,6 +58,7 @@ bool BlockAssembly::start(run_number_t run)
     }
     DBGTHRD(<< "Picked block for selection " << (void*) dest);
 
+    w_assert1(run >= lastRun);
     if (run != lastRun) {
         // Only start new run if it's teh archival process
         // -- a merged run is created once with openNewRun and then finished at BlockAssembly::shutdown
@@ -124,7 +125,7 @@ bool BlockAssembly::add(logrec_t* lr)
 
 void BlockAssembly::finish()
 {
-    DBGTHRD("Selection produced block for writing " << (void*) dest <<
+    DBGTHRD(<< "Selection produced block for writing " << (void*) dest <<
             " in run " << (int) lastRun << " with end " << pos);
     w_assert0(dest);
 
@@ -188,6 +189,7 @@ void WriterThread::run()
 	    // closeCurrentRun should only be called when switching to a new run,
             // because of how log files map to runs now, unless it's a merge
             if (level > 1) {
+               w_assert1(lastMergedRun > 1);
                index->closeCurrentRun(lastMergedRun, level);
             }
             return; // finished is set on buf

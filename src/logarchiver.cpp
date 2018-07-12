@@ -252,12 +252,17 @@ void LogArchiver::run()
         // INC_TSTAT(la_activations);
         DBGOUT(<< "Log archiver activated from " << nextLSN << " to " << endRoundLSN);
 
-        replacement();
 
         if (flushReqLSN != lsn_t::null) {
+            // TODO this guarantee is required for FineLine
+            log->flush_all();
+            w_assert0(log->durable_lsn() == flushReqLSN);
+            // consume whole log
             w_assert0(endRoundLSN >= flushReqLSN);
+            endRoundLSN = flushReqLSN;
+            replacement();
             // consume whole heap
-            selectionRun = currPartition->num();
+            selectionRun = flushReqLSN.hi() + 1;
             while (selection()) {}
             // Heap empty: Wait for all blocks to be consumed and writen out
             w_assert0(heap->size() == 0);
@@ -270,7 +275,9 @@ void LogArchiver::run()
             // blkAssemb->resetWriter();
 
             // CS FINELINE TODO: must guarantee that flushReqLSN.hi() will not
-            // be appended to anymore!
+            // be appended to anymore! This is a hacky way to guarantee that.
+            currPartition->close();
+            w_assert0(log->durable_lsn() == flushReqLSN);
 
             /* Now we know that the requested LSN has been processed by the
              * heap and all archiver temporary memory has been flushed. Thus,
@@ -279,6 +286,9 @@ void LogArchiver::run()
              */
             flushReqLSN = lsn_t::null;
             lintel::atomic_thread_fence(lintel::memory_order_release);
+        }
+        else {
+            replacement();
         }
 
         /*
@@ -453,9 +463,6 @@ void MergerDaemon::doMerge(unsigned level, unsigned fanin)
             blkAssemb.finish();
         }
 
-        // This is a hack to close the merged file correctly, because during shutdown,
-        // WriterThread will see currentRun as always 1, and thus the file will not be
-        // saved with the correct end boundaries.
         blkAssemb.setLastMergedRun(lastMergedRun);
         blkAssemb.shutdown();
     }

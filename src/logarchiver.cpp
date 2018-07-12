@@ -11,7 +11,7 @@ using namespace std;
 
 const static int DFT_BLOCK_SIZE = 8 * 1024 * 1024;
 
-LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool format, bool merge)
+LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool format, int merge_fanin)
     : log(log), shutdownFlag(false), flushReqLSN(lsn_t::null)
 {
     w_assert0(log);
@@ -46,8 +46,8 @@ LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool forma
     unsigned fsyncFrequency = 1;
     blkAssemb = make_unique<BlockAssembly>(index.get(), archBlockSize, 1 /*level*/, compression, fsyncFrequency);
 
-    if (merge) {
-        merger = make_unique<MergerDaemon>(index);
+    if (merge_fanin > 1) {
+        merger = make_unique<MergerDaemon>(index, merge_fanin);
         merger->fork();
         merger->wakeup();
     }
@@ -373,17 +373,14 @@ void LogArchiver::archiveUntil(run_number_t run)
     }
 }
 
-MergerDaemon::MergerDaemon(std::shared_ptr<ArchiveIndex> in, std::shared_ptr<ArchiveIndex> out)
+MergerDaemon::MergerDaemon(std::shared_ptr<ArchiveIndex> in, unsigned fanin, std::shared_ptr<ArchiveIndex> out)
     :
     // CS TODO: interval should come from merge policy
-    worker_thread_t(0),
-     indir(in), outdir(out)
+    worker_thread_t(0), indir(in), outdir(out), _fanin(fanin)
 {
     // CS TODO: options
-    // _fanin = options.get_int_option("sm_archiver_fanin", 5);
     // _compression = options.get_int_option("sm_page_img_compression", 0) > 0;
     // _blockSize = options.get_int_option("sm_archiver_block_size", DFT_BLOCK_SIZE);
-    _fanin = 5;
     _compression = false;
     _blockSize = DFT_BLOCK_SIZE;
     if (!outdir) { outdir = indir; }
@@ -393,7 +390,7 @@ MergerDaemon::MergerDaemon(std::shared_ptr<ArchiveIndex> in, std::shared_ptr<Arc
 void MergerDaemon::do_work()
 {
     // For now, constantly merge runs of level 1 into level 2
-    doMerge(1, _fanin);
+    doMerge(1);
 }
 
 bool runComp(const RunId& a, const RunId& b)
@@ -401,13 +398,13 @@ bool runComp(const RunId& a, const RunId& b)
     return a.begin < b.begin;
 }
 
-void MergerDaemon::doMerge(unsigned level, unsigned fanin)
+void MergerDaemon::doMerge(unsigned level)
 {
     list<RunId> stats, statsNext;
     indir->listFileStats(stats, level);
     indir->listFileStats(statsNext, level+1);
 
-    if (stats.size() < fanin) {
+    if (stats.size() < _fanin) {
         // CS TODO: merge policies
         DBGOUT3(<< "Not enough runs to merge: " << stats.size());
         ::sleep(1);
@@ -424,18 +421,18 @@ void MergerDaemon::doMerge(unsigned level, unsigned fanin)
         firstMergedRun = statsNext.back().end + 1;
     }
 
-    // collect 'fanin' runs in the current level starting from nextLSN
+    // collect '_fanin' runs in the current level starting from nextLSN
     auto begin = stats.begin();
     while (begin != stats.end() && firstMergedRun > begin->begin) { begin++; }
     auto end = begin;
     unsigned count = 0;
-    while (count < fanin && end != stats.end()) {
+    while (count < _fanin && end != stats.end()) {
         end++;
         count++;
     }
     auto lastMergedRun = (end == stats.end()) ?  stats.back().end : (end->end - 1);
 
-    if (count < fanin) {
+    if (count < _fanin) {
         // CS TODO: merge policies
         DBGOUT3(<< "Not enough runs to merge");
         ::sleep(1);

@@ -89,14 +89,13 @@ private:
  */
 class MergerDaemon : public worker_thread_t {
 public:
-    MergerDaemon(std::shared_ptr<ArchiveIndex> in,
-        std::shared_ptr<ArchiveIndex> ou = nullptr);
+    MergerDaemon(std::shared_ptr<ArchiveIndex> in, unsigned fanin, std::shared_ptr<ArchiveIndex> ou = nullptr);
 
     virtual ~MergerDaemon() {}
 
     virtual void do_work();
 
-    void doMerge(unsigned level, unsigned fanin);
+    void doMerge(unsigned level);
 
 private:
     std::shared_ptr<ArchiveIndex> indir;
@@ -171,7 +170,7 @@ private:
  */
 class LogArchiver : public thread_wrapper_t {
 public:
-    LogArchiver(const std::string& archdir, LogManager* log, bool format, bool merge);
+    LogArchiver(const std::string& archdir, LogManager* log, bool format, int merge_fanin);
     virtual ~LogArchiver();
 
     virtual void run();

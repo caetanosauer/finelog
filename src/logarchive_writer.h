@@ -28,6 +28,7 @@ private:
     ArchiveIndex* index;
     unsigned fsyncFrequency;
     run_number_t currentRun;
+    run_number_t lastMergedRun;
     unsigned level;
     unsigned appendBlockCount;
 
@@ -39,16 +40,14 @@ public:
     /*
      * Called by processFlushRequest to forcibly start a new run
      */
-    void resetCurrentRun()
-    {
-        currentRun++;
-    }
+    void resetCurrentRun() { currentRun++; }
+    // Used for merges only
+    void setLastMergedRun(run_number_t run) { lastMergedRun = run; }
 
     WriterThread(std::shared_ptr<AsyncRingBuffer> writebuf, ArchiveIndex* index, unsigned level, unsigned fsyncFrequency)
         :
             buf(writebuf), index(index), fsyncFrequency(fsyncFrequency),
-            currentRun(0), level(level),
-            appendBlockCount(0)
+            currentRun(0), lastMergedRun(0), level(level), appendBlockCount(0)
     {
     }
 
@@ -95,6 +94,7 @@ public:
     void finish();
     void shutdown();
     bool hasPendingBlocks();
+    void setLastMergedRun(run_number_t);
 
     void resetWriter() { writer->resetCurrentRun(); }
     size_t getBlockSize() { return blockSize; }

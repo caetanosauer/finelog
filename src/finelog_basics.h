@@ -79,7 +79,7 @@ void global_assert_failed(
 #define CHECK_ERRNO(n) \
     if (n == -1) { \
         std::stringstream ss; \
-        ss << "Kernel errno code: " << errno; \
+        ss << "Kernel errno code: " << errno << " ("  << strerror(errno) << ")"; \
         throw std::runtime_error(ss.str()); \
     }
 

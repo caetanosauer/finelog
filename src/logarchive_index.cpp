@@ -296,7 +296,7 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
         }
 
 #if W_DEBUG_LEVEL >= 1
-        if (currentRun > 0) {
+        if (lastRun != currentRun && currentRun > 0) {
             // Read run again to make sure it's consistent
             RunId runid{lastRun+1, currentRun, level};
             auto runFile = openForScan(runid);
@@ -320,8 +320,7 @@ void ArchiveIndex::append(char* data, size_t length, unsigned level)
     w_assert1(reinterpret_cast<logrec_t*>(data)->valid_header());
 
     // INC_TSTAT(la_block_writes);
-    auto ret = ::pwrite(appendFd[level], data, length + logrec_t::get_eof_logrec().length(),
-                appendPos[level]);
+    auto ret = ::pwrite(appendFd[level], data, length + logrec_t::get_eof_logrec().length(), appendPos[level]);
     CHECK_ERRNO(ret);
     appendPos[level] += length;
 }

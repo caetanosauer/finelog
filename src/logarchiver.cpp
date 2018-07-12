@@ -453,7 +453,10 @@ void MergerDaemon::doMerge(unsigned level, unsigned fanin)
             blkAssemb.finish();
         }
 
-        outdir->closeCurrentRun(lastMergedRun, level+1);
+        // This is a hack to close the merged file correctly, because during shutdown,
+        // WriterThread will see currentRun as always 1, and thus the file will not be
+        // saved with the correct end boundaries.
+        blkAssemb.setLastMergedRun(lastMergedRun);
         blkAssemb.shutdown();
     }
 }

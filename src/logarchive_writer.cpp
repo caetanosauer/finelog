@@ -158,6 +158,14 @@ void BlockAssembly::shutdown()
     writer->join();
 }
 
+void BlockAssembly::setLastMergedRun(run_number_t run)
+{
+    // This is a hack to close the merged file correctly, because during shutdown,
+    // WriterThread will see currentRun as always 1, and thus the file will not be
+    // saved with the correct end boundaries.
+    writer->setLastMergedRun(run);
+}
+
 void WriterThread::run()
 {
     DBGTHRD(<< "Writer thread activated");
@@ -178,8 +186,10 @@ void WriterThread::run()
              */
             DBGTHRD(<< "Finished flag set on writer thread");
 	    // closeCurrentRun should only be called when switching to a new run,
-            // because of how log files map to runs now
-            // index->closeCurrentRun(currentRun, level);
+            // because of how log files map to runs now, unless it's a merge
+            if (level > 1) {
+               index->closeCurrentRun(lastMergedRun, level);
+            }
             return; // finished is set on buf
         }
 
@@ -193,6 +203,7 @@ void WriterThread::run()
             currentRun = run;
         }
         if (currentRun != run) {
+            w_assert1(level == 1);
             // when writer is restarted, currentRun resets to zero
             w_assert1(currentRun == 0 || run == currentRun + 1);
             /*
@@ -214,8 +225,7 @@ void WriterThread::run()
 
         index->append(src, actualBlockSize, level);
 
-        DBGTHRD(<< "Wrote out block " << (void*) src
-                << " in run " << run);
+        DBGTHRD(<< "Wrote out block " << (void*) src << " in run " << run);
 
         buf->consumerRelease();
 

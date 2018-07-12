@@ -294,6 +294,18 @@ void ArchiveIndex::closeCurrentRun(run_number_t currentRun, unsigned level)
 		cerr << "archived_epoch = " << archived_epoch << endl;
             }
         }
+
+#if W_DEBUG_LEVEL >= 1
+        if (currentRun > 0) {
+            // Read run again to make sure it's consistent
+            RunId runid{lastRun+1, currentRun, level};
+            auto runFile = openForScan(runid);
+            w_assert1(runFile->length > 0);
+            RunInfo runInfo;
+            runInfo.loadFromFile(runFile, runid);
+            closeScan(runid);
+        }
+#endif
     }
 
     openNewRun(level);
@@ -494,7 +506,7 @@ void ArchiveIndex::finishRun(run_number_t begin, run_number_t end, int fd, off_t
     if (level > 1 && runRecycler) { runRecycler->wakeup(); }
 }
 
-void ArchiveIndex::RunInfo::serialize(int fd, off_t offset)
+void ArchiveIndex::RunInfo::serialize(int fd, off_t offset) const
 {
     // Write whole vectors
     w_assert0(pids.size() == offsets.size());
@@ -574,9 +586,8 @@ run_number_t ArchiveIndex::getFirstRun(unsigned level)
     return runs[level][0].begin;
 }
 
-void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
+void ArchiveIndex::RunInfo::loadFromFile(RunFile* runFile, const RunId& fstats)
 {
-    RunInfo run;
     if (runFile->length > 0) {
         // Read footer from end of file
         w_assert0(runFile->length > sizeof(RunFooter));
@@ -591,7 +602,7 @@ void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
         PageID* pages = reinterpret_cast<PageID*>(runFile->getOffset(index_offset));
         uint64_t* offsets = reinterpret_cast<uint64_t*>(runFile->getOffset(index_offset + (footer.entryCount * sizeof(PageID))));
         for (size_t i = 0; i < footer.entryCount; i++) {
-            run.addRawEntry(*pages, *offsets);
+            addRawEntry(*pages, *offsets);
             pages++;
             offsets++;
         }
@@ -601,16 +612,25 @@ void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
         w_assert0(memcmp(runFile->getOffset(skip_offset), &logrec_t::get_eof_logrec(), logrec_t::get_eof_logrec().length()) == 0);
     }
 
-    run.begin = fstats.begin;
-    run.end = fstats.end;
+    begin = fstats.begin;
+    end = fstats.end;
+}
 
+void ArchiveIndex::loadRunInfo(RunFile* runFile, const RunId& fstats)
+{
+    // NOT THREAD SAFE -- called from constructor in a single thread
+    // Update maxLevel if this is a new level
     if (fstats.level > maxLevel) {
         maxLevel = fstats.level;
         // level 0 reserved, so add 1
         runs.resize(maxLevel+1);
         lastFinished.resize(maxLevel+1, -1);
     }
-    runs[fstats.level].push_back(run);
+    // Add to list and load entries from file
+    runs[fstats.level].emplace_back();
+    RunInfo& run = runs[fstats.level].back();
+    run.loadFromFile(runFile, fstats);
+    // Update lastFinished
     lastFinished[fstats.level] = runs[fstats.level].size() - 1;
 }
 

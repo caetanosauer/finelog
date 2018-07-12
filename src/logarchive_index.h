@@ -127,12 +127,13 @@ public:
             addRawEntry(pid, offset | (hasImage ? Mask : 0));
         }
 
-        uint64_t getOffset(int i)
+        uint64_t getOffset(int i) const
         {
             return offsets[i] & ~Mask;
         }
 
-        void serialize(int fd, off_t offset);
+        void serialize(int fd, off_t offset) const;
+        void loadFromFile(RunFile* runFile, const RunId& fstats);
 
     private:
         std::vector<uint64_t> offsets;

@@ -169,7 +169,12 @@ ArchiveIndex::ArchiveIndex(const string& archdir, log_storage* logStorage, bool 
 
 ArchiveIndex::~ArchiveIndex()
 {
-    if (runRecycler) { runRecycler->stop(); }
+    if (runRecycler) {
+        // closing all files allows run recycler to do a last round and delete whatever is possible
+        closeUnusedFiles();
+        runRecycler->wakeup(true /*wait*/);
+        runRecycler->stop();
+    }
 }
 
 void ArchiveIndex::listFiles(std::vector<std::string>& list, int level)

@@ -137,7 +137,7 @@ void LogManager::shutdown()
  *  from the last log file.
  *
  *********************************************************************/
-LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old_partitions, size_t partition_size)
+LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old_partitions, size_t partition_size, unsigned compression)
     :
       _start(0),
       _end(0),
@@ -186,10 +186,9 @@ LogManager::LogManager(const std::string& logdir, bool reformat, bool delete_old
     // CS TODO: replace sm_options
     // _group_commit_size = options.get_int_option("sm_group_commit_size", 0);
     // _group_commit_timeout = options.get_int_option("sm_group_commit_timeout", 0);
-    // _page_img_compression = options.get_int_option("sm_page_img_compression", 0);
     _group_commit_size = 0;
     _group_commit_timeout = 0;
-    _page_img_compression = 0;
+    _page_img_compression = compression;
 
     // directIO = options.get_bool_option("sm_log_o_direct", false);
     directIO = false;

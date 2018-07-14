@@ -11,7 +11,7 @@ using namespace std;
 
 const static int DFT_BLOCK_SIZE = 8 * 1024 * 1024;
 
-LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool format, int merge_fanin)
+LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool format, int merge_fanin, unsigned compression)
     : log(log), shutdownFlag(false), flushReqLSN(lsn_t::null)
 {
     w_assert0(log);
@@ -25,7 +25,6 @@ LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool forma
     // CS TODO: bring options
     // size_t workspaceSize = 1024 * 1024 * defaultWorkspaceSize; // convert MB -> B
     size_t archBlockSize = DFT_BLOCK_SIZE;
-    bool compression = false;
     size_t maxOpenFiles = 20;
 
     index = std::make_shared<ArchiveIndex>(archdir, log->get_storage(), format, maxOpenFiles);
@@ -44,10 +43,10 @@ LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool forma
     heap = make_unique<ArchiverHeapSimple>();
     // unsigned fsyncFrequency = options.get_bool_option("sm_arch_fsync_frequency", 1);
     unsigned fsyncFrequency = 1;
-    blkAssemb = make_unique<BlockAssembly>(index.get(), archBlockSize, 1 /*level*/, compression, fsyncFrequency);
+    blkAssemb = make_unique<BlockAssembly>(index.get(), archBlockSize, 1 /*level*/, (compression > 0), fsyncFrequency);
 
     if (merge_fanin > 1) {
-        merger = make_unique<MergerDaemon>(index, merge_fanin);
+        merger = make_unique<MergerDaemon>(index, merge_fanin, compression);
         merger->fork();
         merger->wakeup();
     }
@@ -373,15 +372,14 @@ void LogArchiver::archiveUntil(run_number_t run)
     }
 }
 
-MergerDaemon::MergerDaemon(std::shared_ptr<ArchiveIndex> in, unsigned fanin, std::shared_ptr<ArchiveIndex> out)
+MergerDaemon::MergerDaemon(std::shared_ptr<ArchiveIndex> in, unsigned fanin, unsigned compression, std::shared_ptr<ArchiveIndex> out)
     :
     // CS TODO: interval should come from merge policy
     worker_thread_t(0), indir(in), outdir(out), _fanin(fanin)
 {
     // CS TODO: options
-    // _compression = options.get_int_option("sm_page_img_compression", 0) > 0;
     // _blockSize = options.get_int_option("sm_archiver_block_size", DFT_BLOCK_SIZE);
-    _compression = false;
+    _compression = compression > 0;
     _blockSize = DFT_BLOCK_SIZE;
     if (!outdir) { outdir = indir; }
     w_assert0(indir && outdir);

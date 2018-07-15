@@ -16,14 +16,14 @@ bool mergeInputCmpGt(const MergeInput& a, const MergeInput& b)
 ArchiveScan::ArchiveScan(std::shared_ptr<ArchiveIndex> archIndex)
     : archIndex(archIndex), prevVersion(0), prevPID(0), singlePage(false), lastProbedRun(0)
 {
-    clear();
+    close();
 }
 
 void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin,
         run_number_t runEnd)
 {
     w_assert0(archIndex);
-    clear();
+    close();
     auto& inputs = _mergeInputVector;
 
     archIndex->probe(inputs, startPID, endPID, runBegin, runEnd);
@@ -46,6 +46,7 @@ void ArchiveScan::open(PageID startPID, PageID endPID, run_number_t runBegin,
             }
         }
         else {
+            archIndex->closeScan(it->runFile->runid);
             std::advance(it, 1);
             inputs.erase(it.base());
         }
@@ -60,7 +61,7 @@ bool ArchiveScan::finished()
     return heapBegin == heapEnd;
 }
 
-void ArchiveScan::clear()
+void ArchiveScan::close()
 {
     auto& inputs = _mergeInputVector;
     for (auto it : inputs) {
@@ -115,7 +116,7 @@ bool ArchiveScan::next(logrec_t*& lr)
 
 ArchiveScan::~ArchiveScan()
 {
-    clear();
+    close();
 }
 
 void ArchiveScan::dumpHeap()

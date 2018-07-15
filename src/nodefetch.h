@@ -39,6 +39,11 @@ public:
        }
    }
 
+   void close()
+   {
+       archive_scan.close();
+   }
+
    // Required for eviction of pages with updates not yet archived (FineLine)
    template <typename NodeID>
    void reopen(NodeID id)

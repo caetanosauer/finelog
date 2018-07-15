@@ -492,6 +492,7 @@ void ArchiveIndex::deleteRuns(unsigned replicationFactor)
 
     if (runsToDelete.size() > 0) {
         spinlock_write_critical_section cs(&_mutex);
+        spinlock_write_critical_section cs2(&_open_file_mutex);
         // Close files that are not used, so that they can be deleted if they were merged
         closeUnusedFiles(maxRun, minLevel);
         // Do a pass over files marked for deletion earlier
@@ -507,7 +508,7 @@ void ArchiveIndex::deleteRuns(unsigned replicationFactor)
 
 bool ArchiveIndex::tryFileDeletion(const RunId& runid)
 {
-    // Caller must hold exclusive latch
+    // Caller must hold exclusive latch on both _mutex and _open_file_mutex!
     // File still open -- can't delete
     if (_open_files.count(runid) > 0) { return false; }
     auto path = make_run_path(runid.begin, runid.end, runid.level);

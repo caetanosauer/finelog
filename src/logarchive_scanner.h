@@ -36,11 +36,10 @@ public:
     ArchiveScan(std::shared_ptr<ArchiveIndex>);
     ~ArchiveScan();
 
-    void open(PageID startPID, PageID endPID, run_number_t runBegin = 0,
-            run_number_t runEnd = 0);
+    void open(PageID startPID, PageID endPID, run_number_t runBegin = 0, run_number_t runEnd = 0);
     bool next(logrec_t*&);
     bool finished();
-
+    void close();
 
     template <class Iter> void openForMerge(Iter begin, Iter end);
     run_number_t getLastProbedRun() const { return lastProbedRun; }
@@ -58,8 +57,6 @@ private:
     PageID prevPID;
     bool singlePage;
     run_number_t lastProbedRun;
-
-    void clear();
 };
 
 bool mergeInputCmpGt(const MergeInput& a, const MergeInput& b);
@@ -68,12 +65,13 @@ template <class Iter>
 void ArchiveScan::openForMerge(Iter begin, Iter end)
 {
     w_assert0(archIndex);
-    clear();
+    close();
     auto& inputs = _mergeInputVector;
 
     for (Iter it = begin; it != end; it++) {
         MergeInput input;
         input.pos = 0;
+        input.endPID = 0;
         input.runFile = archIndex->openForScan(*it);
         inputs.push_back(input);
     }
@@ -87,6 +85,7 @@ void ArchiveScan::openForMerge(Iter begin, Iter end)
         constexpr PageID startPID = 0;
         if (it->open(startPID)) { it++; }
         else {
+            archIndex->closeScan(it->runFile->runid);
             std::advance(it, 1);
             inputs.erase(it.base());
         }

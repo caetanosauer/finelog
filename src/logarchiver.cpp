@@ -239,7 +239,7 @@ void LogArchiver::run()
             if (flushReqLSN != lsn_t::null) { break; }
         }
 
-        if (endRoundLSN.lo() == 0) {
+        if (!shutdownFlag && endRoundLSN.lo() == 0) {
             // If durable_lsn is at the beginning of a new log partition,
             // it can happen that at this point the file was not created
             // yet, which would cause the reader thread to fail.
@@ -420,15 +420,15 @@ void MergerDaemon::doMerge(unsigned level)
     }
 
     // collect '_fanin' runs in the current level starting from nextLSN
-    auto begin = stats.begin();
-    while (begin != stats.end() && firstMergedRun > begin->begin) { begin++; }
-    auto end = begin;
+    auto first = stats.begin();
+    while (first != stats.end() && firstMergedRun > first->begin) { first++; }
+    auto last = first;
     unsigned count = 0;
-    while (count < _fanin && end != stats.end()) {
-        end++;
+    while (count < _fanin && last != stats.end()) {
+        last++;
         count++;
     }
-    auto lastMergedRun = (end == stats.end()) ?  stats.back().end : (end->end - 1);
+    auto lastMergedRun = (last == stats.end()) ?  stats.back().end : last->end;
 
     if (count < _fanin) {
         // CS TODO: merge policies
@@ -439,7 +439,7 @@ void MergerDaemon::doMerge(unsigned level)
 
     {
         ArchiveScan scan {outdir};
-        scan.openForMerge(begin, end);
+        scan.openForMerge(first, last);
         BlockAssembly blkAssemb(outdir.get(), _blockSize, level+1, _compression);
         outdir->openNewRun(level+1);
         outdir->startNewRun(level+1);

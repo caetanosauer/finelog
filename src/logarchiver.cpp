@@ -25,7 +25,7 @@ LogArchiver::LogArchiver(const std::string& archdir, LogManager* log, bool forma
     // CS TODO: bring options
     // size_t workspaceSize = 1024 * 1024 * defaultWorkspaceSize; // convert MB -> B
     size_t archBlockSize = DFT_BLOCK_SIZE;
-    size_t maxOpenFiles = 20;
+    size_t maxOpenFiles = 200;
 
     index = std::make_shared<ArchiveIndex>(archdir, log->get_storage(), format, maxOpenFiles);
     nextLSN = lsn_t(index->getLastRun() + 1, 0);
